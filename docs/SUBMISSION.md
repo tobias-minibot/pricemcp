@@ -90,8 +90,13 @@ All displayed demo prices must retain the `synthetic: true` and
   write boundary, and the corrected run produced the approved decision receipt
 - Public repository: `https://github.com/tobias-minibot/pricemcp`
 - Representative PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
-- Qodo review, video URL, and submission receipt: pending; no evidence is claimed
-  before those external steps occur
+- Qodo review: `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797`
+  (0 bugs, 0 rule violations, 0 requirement gaps)
+- Qodo latest-commit confirmation:
+  `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464127242`
+- Demo video:
+  `https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4`
+- Submission receipt: pending until the official form is sent
 
 ## Safety boundary
 

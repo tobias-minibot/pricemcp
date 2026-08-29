@@ -53,8 +53,9 @@ not place an order or contact a merchant.
 ## 2:30–3:00 — Reproducibility and Qodo
 
 Show the passing test command, public repository, and README’s
-`Qodo Code Review Evidence` section. Open the linked merged PR and briefly show
-the initial Qodo finding, the fix, and Qodo’s follow-up review.
+`Qodo Code Review Evidence` section. Open the linked PR and briefly show Qodo’s
+review of the substantive safety change, its zero-issue result, and the
+latest-commit confirmation.
 
 Close with: “PriceMCP turns price search into comparable evidence, then lets the
 human retain control at the action boundary.”

@@ -175,15 +175,22 @@ When `PRICEMCP_SCHEDULER=true` (default): priority collectors run every 45 minut
 
 ## Qodo Code Review Evidence
 
-This section is intentionally incomplete until the public repository exists and
-Qodo has reviewed a substantive pull request. The final submission will include:
+Qodo reviewed the substantive safety pull request that hardens the
+approval-gated procurement flow:
 
-- representative merged PR: **pending**
-- Qodo finding and resulting fix: **pending**
-- follow-up Qodo review confirming the fix: **pending**
+- representative PR: [#1 — Harden the TrueForge approval-gated procurement flow](https://github.com/tobias-minibot/pricemcp/pull/1)
+- Qodo review: [0 bugs, 0 rule violations, 0 requirement gaps](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797)
+- latest-commit confirmation: [Qodo review updated through `d7b423b`](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464127242)
 
-No screenshot-only or unverified review claim will be substituted for the linked
-PR evidence.
+The review found no material issue requiring a further code change. The linked
+PR and bot-authored comments are the source of truth; no screenshot-only claim
+is used as evidence.
+
+## Demo video
+
+Watch or download the [2:27 narrated hackathon demo](https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4).
+It shows PriceMCP research through MCP, TrueForge sandbox execution, and the
+human approval gate before a durable append-only decision receipt.
 
 ## Quote schema direction
 
