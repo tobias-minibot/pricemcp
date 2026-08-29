@@ -33,6 +33,17 @@ boundary in one command:
 npm run verify:live
 ```
 
+Before submission, verify the public repository, Qodo evidence, YouTube video,
+release backup, live judge console, synthetic-data disclosures, and approval
+boundary in one non-mutating preflight:
+
+```bash
+npm run verify:submission
+```
+
+The official form and its receipt remain a manual external gate; this command
+does not open, edit, or submit the form.
+
 ## Live infrastructure proof
 
 The public `/developer` console is a judge-oriented view of the real system. It
