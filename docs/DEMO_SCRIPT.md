@@ -32,13 +32,16 @@ Point out why the cheapest untrusted or conditional offer does not win.
 
 ## 1:25–1:55 — Sandbox execution
 
-Show TrueForge creating its sandbox and running Python. Open or download
+If the local model has stopped after comparison, send the prepared “Continue
+with sandbox stage 3” prompt from `docs/SUBMISSION.md`. Show TrueForge creating
+its sandbox and running Python. Open or download
 `procurement-brief.md`. Highlight the independently calculated savings, exact
 variant, merchant, evidence timestamp, and explicit tax/shipping uncertainty.
 
 ## 1:55–2:30 — Human approval boundary
 
-Show the pending `record_decision` tool call. Say:
+Send the prepared “Propose record_decision” prompt. Show the pending
+`record_decision` tool call. Say:
 
 “The research and calculation were autonomous. A durable action is not. The MCP
 tool is annotated as destructive and non-idempotent, and the TrueForge manifest

@@ -56,7 +56,20 @@ if necessary. Then prompt:
 > evidence brief, recommend the best unconditional trusted offer, and propose
 > recording the decision.
 
-Expected visible sequence:
+For the most reliable local-model demo, use three turns in the same TrueForge
+session. First submit the comparison prompt above. If the local model stops after
+the comparison, continue with:
+
+> Continue with sandbox stage 3. Use exec with an intent and no cwd, write all
+> currency as `USD` (no dollar signs), verify procurement-brief.md, and show its
+> absolute sandbox artifact link. Do not record the decision yet.
+
+Then submit:
+
+> The brief is verified. Propose record_decision for the selected exact product
+> and merchant. Do not bypass approval.
+
+Expected visible sequence across the session:
 
 1. TrueForge calls PriceMCP `find_best_offer` and `compare_prices` over MCP.
 2. TrueForge starts its sandbox, runs Python, and creates `procurement-brief.md`.

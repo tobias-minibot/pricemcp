@@ -99,7 +99,9 @@ Read tools: `search_products`, `get_price`, `compare_prices`,
 
 Guarded write tool: `record_decision`. It appends a receipt tied to a fresh
 offer and is annotated as destructive and non-idempotent for approval-aware MCP
-clients. It does not purchase or contact a merchant.
+clients. The server independently rejects untrusted, membership-conditional,
+non-new, unavailable, or stale offers even after approval. It does not purchase
+or contact a merchant.
 
 ## Architecture
 
