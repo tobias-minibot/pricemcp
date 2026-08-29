@@ -25,6 +25,13 @@ TrueForge judge workflow intentionally uses the local synthetic service so its
 trust, stale-offer, membership, marketplace, and approval-gate behavior remains
 reproducible and visibly non-purchasable.
 
+Verify the public REST and MCP paths, offer provenance, and read-only production
+boundary in one command:
+
+```bash
+npm run verify:live
+```
+
 ## One neutral search surface
 
 The hackathon interface turns the infrastructure into a simple consumer and
