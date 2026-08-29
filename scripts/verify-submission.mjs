@@ -39,7 +39,9 @@ for (const commentId of [5464186759, 5464190900, 5464200382]) {
   assert(qodoComments.some((comment) => comment.id === commentId), `Qodo evidence comment ${commentId} is missing`);
 }
 
-const video = await (await fetchOk('https://www.youtube.com/oembed?url=https://youtu.be/UFDzSPeujXQ&format=json')).json();
+const youtubeUrl = submission.match(/Required YouTube submission URL:\s*`(https:\/\/youtu\.be\/[^`]+)`/)?.[1];
+assert(youtubeUrl, 'submission copy is missing the required YouTube submission URL');
+const video = await (await fetchOk(`https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`)).json();
 assert(video.type === 'video', 'YouTube URL does not resolve to a video');
 
 const release = await fetchOk('https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4', { method: 'HEAD' });
@@ -54,6 +56,7 @@ console.log(JSON.stringify({
   status: 'ready',
   repository: `${repo.full_name} (${repo.visibility.toLowerCase()})`,
   qodo_evidence: `PR #2 merged; ${qodoComments.length} public comments inspected`,
+  youtube_url: youtubeUrl,
   youtube_video: video.title,
   release_backup: 'reachable',
   developer_console: 'reachable with live MCP and synthetic-flight disclosures',
