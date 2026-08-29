@@ -1,6 +1,6 @@
-# Three-minute demo script
+# Two-minute judge-first demo script
 
-## 0:00–0:10 — Establish the consumer promise
+## 0:00–0:12 — Establish the infrastructure thesis
 
 Open the public homepage and say:
 
@@ -8,7 +8,7 @@ Open the public homepage and say:
 surface serves the consumer UI, REST, and MCP. There are no ads or sponsored
 results.” Click **Open infrastructure console** immediately.
 
-## 0:10–0:40 — Show live MCP infrastructure
+## 0:12–0:55 — Show live MCP infrastructure
 
 The console automatically invokes `search_price` for AirPods Pro 3 through an
 official MCP SDK client. In one sweep, point to:
@@ -24,7 +24,7 @@ official MCP SDK client. In one sweep, point to:
 Say: “This is not a UI reconstruction. This page asks the actual PriceMCP MCP
 server to list and execute its tools against the deployed read-only dataset.”
 
-## 0:40–1:00 — Prove the cross-domain contract
+## 0:55–1:23 — Show tool discovery and prove the cross-domain contract
 
 Click **Run disclosed flight fixture**. Point out that the same `search_price`
 tool now accepts an itinerary and returns the same quote envelope with
@@ -32,7 +32,7 @@ flight-specific conditions. Call out the visible `SYNTHETIC / NOT BOOKABLE`
 state. Say: “Without a configured live provider PriceMCP fails closed; this
 fixture proves the domain contract without fabricating a live fare.”
 
-## 1:00–1:35 — Real agent work
+## 1:23–1:34 — Real agent work
 
 In TrueForge, submit:
 
@@ -48,7 +48,7 @@ Briefly show that `search_price` accepts both `{ type: "product", query: ... }`
 and `{ type: "flight", origin: "WAS", destination: "BER", ... }`. The existing
 product tools remain available for the deeper procurement workflow.
 
-## 1:30–1:55 — Sandbox execution
+## 1:34–1:49 — Sandbox execution and human approval boundary
 
 If the local model has stopped after comparison, send the prepared “Continue
 with sandbox stage 3” prompt from `docs/SUBMISSION.md`. Show TrueForge creating
@@ -56,26 +56,18 @@ its sandbox and running Python. Open or download
 `procurement-brief.md`. Highlight the independently calculated savings, exact
 variant, merchant, evidence timestamp, and explicit tax/shipping uncertainty.
 
-## 1:55–2:30 — Human approval boundary
+## 1:49–2:08 — Reproducibility and close
 
-Send the prepared “Propose record_decision” prompt. Show the pending
-`record_decision` tool call. Say:
+Show the pending `record_decision` tool call. Say:
 
 “The research and calculation were autonomous. A durable action is not. The MCP
 tool is annotated as destructive and non-idempotent, and the TrueForge manifest
 explicitly requires human approval.”
 
-Approve the tool live. Show its append-only decision ID and confirm that it did
-not place an order or contact a merchant.
-
-## 2:30–3:00 — Reproducibility and Qodo
-
-Show the passing test command, public repository, and README’s
-`Qodo Code Review Evidence` section. Open the linked PR and briefly show Qodo’s
-two valid audit findings, the code changes that resolved them, and the passing
-CI check on the reviewed commit. If the remaining TypeScript finding is visible,
-state plainly that it is disputed—not dismissed—and point to the passing check
-as the evidence.
+Show its append-only decision receipt and confirm that it did not place an order
+or contact a merchant. Close on the public architecture and final receipt while
+calling out the repository, automated tests, workflow audits, live deployment,
+and Qodo-reviewed pull requests.
 
 Close with: “PriceMCP turns price search into comparable evidence, then lets the
 human retain control at the action boundary.”

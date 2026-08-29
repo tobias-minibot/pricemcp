@@ -145,7 +145,7 @@ All displayed demo prices must retain the `synthetic: true` and
   `https://github.com/tobias-minibot/pricemcp/actions/runs/33269061721/job/99144158012`
 - Demo video:
   `https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4`
-- Required YouTube submission URL: `https://youtu.be/UFDzSPeujXQ`
+- Required YouTube submission URL: `https://youtu.be/TUL5xt7JkJ4`
   (unlisted; the GitHub release above is the verified backup copy)
 - Submission receipt: pending until the official form is sent
 
