@@ -15,4 +15,17 @@ Before custom collection, PriceMCP checked maintained primitives and stable sell
 - Micro Center does not publish a product/price/inventory API. No unsupported endpoint or blind scraper was added.
 - Existing Best Buy embedded-data collection remains isolated as prototype continuity only. Saved contract fixtures, SLA state, schema-drift detection, and an optional failure webhook now make breakage visible.
 
+## 2026-08-29 Bright Data hackathon path
+
+- Bright Data MCP is the maintained hackathon access layer for retailer pages
+  that direct requests could not retrieve reliably.
+- PriceMCP verified the identical AirPods Pro 3 MFHP4LL/A / UPC 195950543698
+  across Walmart, Target, B&H, and Adorama. Saved HTML/Markdown repair rules
+  handle page-shape changes, while seller allowlists, exact retailer identifiers,
+  availability evidence, and canonical product matching remain fail-closed.
+  Target and B&H observations are retained but quarantined because the fetched
+  documents did not contain offer-scoped seller-of-record evidence.
+- Bright Data resolves page access only. It does not override PriceMCP trust
+  policy, marketplace seller rejection, staleness, or landed-cost uncertainty.
+
 Source evidence is time-sensitive. Collector runs retain method, timestamp, success/failure, match count, captured offers, and errors. The prototype currently assumes U.S. region, USD, no membership, shipping unknown unless explicitly zero, and tax excluded because it is destination-dependent.

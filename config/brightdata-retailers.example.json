@@ -1,22 +1,53 @@
 {
   "schema_version": 1,
-  "provider": "bright-data-web-unlocker",
+  "provider": "bright-data-mcp",
   "notes": "Copy to brightdata-retailers.json. Use exact PDP URLs only. Never commit credentials. accepted_sellers is a fail-closed seller-of-record allowlist.",
   "targets": [
     {
       "merchant_id": "walmart",
       "merchant_name": "Walmart",
-      "url": "https://retailer.example/exact-product-page",
-      "expected_product_id": "apple-macbook-air-m5-13-16-512",
-      "source_product_id": "retailer-sku",
+      "url": "https://www.walmart.com/ip/AirPods-Pro-3/17835006350",
+      "expected_product_id": "apple-airpods-pro-3",
+      "source_product_id": "MFHP4LL/A",
       "accepted_sellers": ["Walmart.com"],
-      "selectors": {
-        "title": ["h1[itemprop=name]", "h1"],
-        "price": ["[itemprop=price]", "[data-testid=price]", ".price"],
-        "availability": ["[itemprop=availability]", "[data-testid=fulfillment]"],
-        "seller": ["[itemprop=seller]", "[data-testid=seller]"],
-        "sku": ["[itemprop=sku]", "[data-testid=sku]"]
+      "html_patterns": {
+        "title": "\\\"productName\\\":\\\"([^\\\"]+)\\\"",
+        "price": "\\\"currentPrice\\\":\\{\\\"price\\\":([0-9.]+)",
+        "availability": "\\\"availabilityStatus\\\":\\{\\\"display\\\":\\\"([^\\\"]+)\\\",\\\"value\\\":\\\"IN_STOCK\\\"",
+        "seller": "\\\"sellerDisplayName\\\":\\\"([^\\\"]+)\\\"",
+        "sku": "\\\"motorOilType\\\":null,\\\"model\\\":\\\"([^\\\"]+)\\\""
+      },
+      "selectors": {}
+    },
+    {
+      "merchant_id": "target",
+      "merchant_name": "Target",
+      "url": "https://www.target.com/p/ap2022-true-wireless-bluetooth-headphones/-/A-85978609",
+      "expected_product_id": "apple-airpods-pro-3",
+      "source_product_id": "85978609",
+      "accepted_sellers": ["Target"],
+      "html_patterns": {
+        "title": "<title[^>]*>(Apple AirPods Pro 3[^<]+)",
+        "price": "data-test=\\\"product-price\\\">\\$([0-9.]+)",
+        "availability": "aria-label=\\\"pickup[^\\\"]* - ([^\\\"]*(?:Ready|available)[^\\\"]*)\\\"",
+        "sku": "\\\"tcin\\\":\\\"(85978609)\\\""
       }
+    },
+    {
+      "merchant_id": "bh-photo",
+      "merchant_name": "B&H Photo",
+      "url": "https://www.bhphotovideo.com/c/product/1920300-REG/apple_mfhp4ll_a_airpods_pro_with_wireless.html",
+      "expected_product_id": "apple-airpods-pro-3",
+      "source_product_id": "APAIRPODSP3",
+      "accepted_sellers": ["B&H Photo"]
+    },
+    {
+      "merchant_id": "adorama",
+      "merchant_name": "Adorama",
+      "url": "https://www.adorama.com/apple-airpods-pro-3-magsafe-usb-c-charging-case-noise-canceling-earbuds/p/acmfhp4lla",
+      "expected_product_id": "apple-airpods-pro-3",
+      "source_product_id": "ACMFHP4LLA",
+      "accepted_sellers": ["Adorama"]
     }
   ]
 }

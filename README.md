@@ -180,7 +180,7 @@ or contact a merchant.
 ## Architecture
 
 ```text
-seller pages / embedded data / Bright Data Web Unlocker
+seller pages / embedded data / Bright Data MCP or Web Unlocker
         ↓
 source-specific collectors
         ↓
@@ -217,17 +217,19 @@ The requested MacBook Air M4 13-inch 16GB/256GB remains as an **inactive referen
 | Apple U.S. | Curated product-selection bootstrap across four manufacturer pages | Working | Official, verified, authorized, trust 1.00 |
 | Best Buy U.S. | Official Products API when `BESTBUY_API_KEY` exists; embedded Apollo SSR prototype fallback | Working | Only exact canonical SKUs and first-party seller classification `1P`; verified/authorized, trust 0.94 |
 | Amazon U.S. | Curated exact PDP HTML | Working | Only explicit `Sold by Amazon.com`; verified/authorized, trust 0.95 |
+| Walmart, Target, B&H, Adorama | Bright Data MCP exact-PDP extraction with saved repair rules | Working for the AirPods Pro 3 validation set | Included as provenance-backed live observations; the normal trusted rank remains fail-closed until merchant authorization policy is confirmed |
 
-Walmart presented a human-verification challenge; Costco, B&H, Adorama, and Abt returned access denial/challenge pages. PriceMCP does not bypass them. Target’s search shell did not provide stable public product data. Amazon search pages were too ambiguous, so the adapter uses a small curated ASIN set and rejects any buy box whose seller is not explicitly Amazon.com.
+Direct requests to Walmart, Target, B&H, and Adorama were blocked or unstable. The hackathon's Bright Data MCP now supplies the rendered page evidence through an authorized access layer; PriceMCP still performs its own exact-SKU, seller, availability, and freshness checks. Amazon search pages remain too ambiguous, so that adapter uses a small curated ASIN set and rejects any buy box whose seller is not explicitly Amazon.com.
 
 ### Bright Data retailer pipeline
 
-The optional Bright Data Web Unlocker transport lets the same evidence and
+The Bright Data MCP transport (with direct Web Unlocker as a fallback) lets the same evidence and
 matching policy operate on rendered retailer PDPs that reject direct requests.
 Copy `config/brightdata-retailers.example.json` to
 `config/brightdata-retailers.json`, add exact PDP URLs and fail-closed
-seller-of-record allowlists, then set `BRIGHTDATA_API_TOKEN` and
-`BRIGHTDATA_WEB_UNLOCKER_ZONE` in the service environment:
+seller-of-record allowlists, then set `BRIGHTDATA_MCP_URL` in the local service
+environment. The direct Web Unlocker API remains available by setting
+`BRIGHTDATA_API_TOKEN` and `BRIGHTDATA_WEB_UNLOCKER_ZONE` instead:
 
 ```bash
 npm run collect:brightdata
@@ -241,9 +243,16 @@ still rejected unless its seller is allowlisted and its title resolves to the
 exact expected canonical SKU. Bright Data solves page access; it does not
 override PriceMCP's trust, freshness, or product-equivalence checks.
 
-The transport and source-contract tests are implemented, but no additional
-retailer is described as live until its Bright Data request and seller evidence
-have been verified with the hackathon account.
+The live validation set uses one genuinely identical SKU: **Apple AirPods Pro 3,
+MFHP4LL/A / UPC 195950543698**. A four-page collection on 2026-08-29 around
+16:00 America/New_York observed Walmart and Target at USD 199.99, B&H at USD
+225.00, and Adorama at USD 249.00. Walmart's `Walmart.com` seller and Adorama's
+seller were offer-scoped structured evidence, so those offers were accepted.
+Target and B&H did not expose offer-scoped seller identity in the retrieved
+documents, so PriceMCP preserved their price evidence but quarantined both as
+`rejected_policy` instead of synthesizing a seller from generic page text.
+Destination tax remains unknown, and delivery timing is location-dependent, so
+this is not represented as a guaranteed landed-cost comparison.
 
 Trust scores are manual MVP policy inputs, not review ratings. They reflect seller identity certainty, manufacturer authorization, source ownership, and fulfillment reliability. An offer is “trusted” only when the merchant is verified and authorized, score is at least 0.75, the seller is not unresolved marketplace inventory, and condition is new.
 

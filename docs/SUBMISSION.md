@@ -14,9 +14,11 @@ calculate savings and write an evidence-backed procurement brief. It finally
 proposes an append-only decision record. TrueForge pauses at that write tool and
 requires explicit human approval before durable state changes.
 
-The default demo uses a clearly labeled synthetic dataset. It is reproducible,
-does not scrape or imply live inventory, never purchases anything, and makes
-unknown shipping and tax visible instead of hiding them in a headline price.
+The deterministic TrueForge judge flow uses a clearly labeled synthetic
+dataset, while a separate Bright Data MCP validation proves the same PriceMCP
+normalization pipeline against one exact AirPods Pro 3 SKU across Walmart,
+Target, B&H, and Adorama. The system never purchases anything and makes unknown
+shipping and tax visible instead of hiding them in a headline price.
 
 ## Why it matters
 
@@ -38,8 +40,10 @@ returns merchant identity, price, currency, freshness, availability,
 conditions, and provenance. The hackathon wedge focuses on Apple products and
 is demonstrated with a controlled synthetic benchmark, so judges can reproduce
 trust, membership, stale-price, marketplace, and unavailable-offer cases
-without relying on a retailer scrape during judging. It is for agent builders
-who need comparable evidence rather than an unverified headline price.
+without relying on a retailer scrape during judging. A separate Bright Data MCP
+run validates the exact AirPods Pro 3 MFHP4LL/A across four recognizable stores,
+preserving seller evidence, stock, timestamp, and PDP provenance. It is for agent
+builders who need comparable evidence rather than an unverified headline price.
 
 ### How did you use TrueForge?
 
@@ -117,7 +121,11 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 42 passing
+- Automated tests: 46 passing
+- Bright Data MCP: four exact-SKU AirPods Pro 3 pages collected from Walmart,
+  Target, B&H, and Adorama; Walmart and Adorama passed offer-scoped seller
+  validation, while Target and B&H were correctly quarantined because seller of
+  record was implicit; no credentials stored in Git
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
 - TrueForge MCP + sandbox + approval run: verified end to end; an intentionally

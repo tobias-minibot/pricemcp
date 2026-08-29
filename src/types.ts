@@ -33,7 +33,7 @@ export interface RawObservation {
   membership_required?: boolean;
   matched_product_id?: string | null;
   match_confidence: number;
-  collection_status: 'success' | 'unavailable' | 'unmatched' | 'malformed';
+  collection_status: 'success' | 'unavailable' | 'unmatched' | 'malformed' | 'rejected_policy';
   raw_payload?: unknown;
   dataset?: string;
   synthetic?: boolean;
