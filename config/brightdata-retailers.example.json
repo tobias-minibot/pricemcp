@@ -4,17 +4,18 @@
   "notes": "Copy to brightdata-retailers.json. Use exact PDP URLs only. Never commit credentials. accepted_sellers is a fail-closed seller-of-record allowlist.",
   "targets": [
     {
-      "merchant_id": "retailer-id-from-catalog",
-      "merchant_name": "Retailer name",
+      "merchant_id": "walmart",
+      "merchant_name": "Walmart",
       "url": "https://retailer.example/exact-product-page",
       "expected_product_id": "apple-macbook-air-m5-13-16-512",
       "source_product_id": "retailer-sku",
-      "accepted_sellers": ["Retailer name"],
+      "accepted_sellers": ["Walmart.com"],
       "selectors": {
         "title": ["h1[itemprop=name]", "h1"],
         "price": ["[itemprop=price]", "[data-testid=price]", ".price"],
         "availability": ["[itemprop=availability]", "[data-testid=fulfillment]"],
-        "seller": ["[itemprop=seller]", "[data-testid=seller]"]
+        "seller": ["[itemprop=seller]", "[data-testid=seller]"],
+        "sku": ["[itemprop=sku]", "[data-testid=sku]"]
       }
     }
   ]

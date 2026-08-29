@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'node:fs';
-import { catalog } from './catalog.js';
+import { catalog, merchants } from './catalog.js';
 import { matchProduct, parsePrice } from './normalize.js';
 import type { CollectorResult, RawObservation } from './types.js';
 
@@ -16,6 +16,7 @@ export interface BrightDataTarget {
     price?: string[];
     availability?: string[];
     seller?: string[];
+    sku?: string[];
   };
 }
 
@@ -25,6 +26,7 @@ type ExtractedProduct = {
   currency: string;
   available: boolean;
   seller: string;
+  source_product_id: string;
   extraction_path: 'json-ld' | 'saved-selectors';
   selector_repairs: string[];
 };
@@ -55,6 +57,8 @@ const jsonLdProducts = ($: cheerio.CheerioAPI): any[] => {
   return products;
 };
 
+const hasPositiveAvailability = (value: string): boolean => /(?:^|\W)(?:in\s*stock|limited\s*availability|available\s*(?:now|for|today)?)(?:\W|$)/i.test(value);
+
 export function extractBrightDataProduct(html: string, target: BrightDataTarget): ExtractedProduct {
   const $ = cheerio.load(html);
   for (const product of jsonLdProducts($)) {
@@ -62,12 +66,13 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
     for (const offer of offers) {
       const price = String(offer?.price ?? offer?.lowPrice ?? '').trim();
       if (!product.name || !price) continue;
-      const seller = String(offer?.seller?.name ?? offer?.seller ?? product?.brand?.name ?? '').trim();
-      const availability = String(offer?.availability ?? '').toLowerCase();
+      const seller = String(offer?.seller?.name ?? offer?.seller ?? '').trim();
+      const availability = String(offer?.availability ?? '');
+      const sourceProductId = String(product?.sku ?? offer?.sku ?? product?.productID ?? '').trim();
       return {
         title: String(product.name).trim(), raw_price: price.startsWith('$') ? price : `$${price}`,
         currency: String(offer?.priceCurrency ?? 'USD').toUpperCase(),
-        available: !/outofstock|soldout|discontinued/.test(availability), seller,
+        available: hasPositiveAvailability(availability), seller, source_product_id: sourceProductId,
         extraction_path: 'json-ld', selector_repairs: []
       };
     }
@@ -78,12 +83,13 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
   const price = textAtFirstMatch($, selectors.price);
   const seller = textAtFirstMatch($, selectors.seller);
   const availability = textAtFirstMatch($, selectors.availability);
+  const sku = textAtFirstMatch($, selectors.sku);
   if (!title.value || !price.value) throw new Error('Schema drift: neither JSON-LD nor saved selector fallbacks produced title and price');
-  const repairs = [title, price, seller, availability].flatMap(match => match.selector ? [match.selector] : []);
+  const repairs = [title, price, seller, availability, sku].flatMap(match => match.selector ? [match.selector] : []);
   return {
     title: title.value, raw_price: price.value.match(/\$[\d,]+(?:\.\d{2})?/)?.[0] ?? price.value,
-    currency: 'USD', available: !/out of stock|sold out|unavailable/i.test(availability.value),
-    seller: seller.value, extraction_path: 'saved-selectors', selector_repairs: repairs
+    currency: 'USD', available: hasPositiveAvailability(availability.value),
+    seller: seller.value, source_product_id: sku.value, extraction_path: 'saved-selectors', selector_repairs: repairs
   };
 }
 
@@ -115,14 +121,19 @@ export async function collectBrightDataRetailers(
   for (const target of targets) {
     try {
       if (!catalog.some(product => product.id === target.expected_product_id)) throw new Error(`Unknown expected product ${target.expected_product_id}`);
+      if (!merchants.some(merchant => merchant.id === target.merchant_id)) throw new Error(`Unknown merchant ${target.merchant_id}`);
+      if (!Array.isArray(target.accepted_sellers) || !target.accepted_sellers.length) throw new Error('accepted_sellers must contain at least one seller of record');
       const extracted = extractBrightDataProduct(await brightDataRequest(target.url, token, zone), target);
       const sellerAllowed = target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
       if (!sellerAllowed) throw new Error(`Rejected seller of record: ${extracted.seller || 'unknown'}`);
+      if (!extracted.source_product_id || extracted.source_product_id.toLowerCase() !== target.source_product_id.trim().toLowerCase()) {
+        throw new Error(`Rejected retailer SKU: expected ${target.source_product_id}, observed ${extracted.source_product_id || 'unknown'}`);
+      }
       const matched = matchProduct(extracted.title, catalog), exact = matched.product?.id === target.expected_product_id;
       observations.push({
         source, source_method: method, merchant_id: target.merchant_id, source_product_id: target.source_product_id,
         url: target.url, observed_at: new Date().toISOString(), title: extracted.title, raw_price: extracted.raw_price,
-        currency: extracted.currency, price_minor: parsePrice(extracted.raw_price), shipping_minor: null,
+        currency: extracted.currency, price_minor: parsePrice(extracted.raw_price, extracted.currency), shipping_minor: null,
         available: extracted.available, condition: 'new', matched_product_id: exact ? target.expected_product_id : null,
         match_confidence: exact ? matched.confidence : 0, collection_status: exact ? (extracted.available ? 'success' : 'unavailable') : 'unmatched',
         raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller, extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
