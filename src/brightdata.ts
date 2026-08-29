@@ -241,5 +241,5 @@ export async function collectBrightDataRetailers(
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
   }
   const accepted = observations.filter(item => item.collection_status === 'success' || item.collection_status === 'unavailable');
-  return { source, method, status: errors.length ? (accepted.length ? 'partial' : 'failed') : 'success', observations, matched_products: new Set(accepted.filter(item => item.matched_product_id).map(item => item.matched_product_id)).size, errors };
+  return { source, method, status: accepted.length === 0 ? 'failed' : errors.length ? 'partial' : 'success', observations, matched_products: new Set(accepted.filter(item => item.matched_product_id).map(item => item.matched_product_id)).size, errors };
 }
