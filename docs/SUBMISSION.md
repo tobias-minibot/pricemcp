@@ -85,11 +85,13 @@ All displayed demo prices must retain the `synthetic: true` and
 - Automated tests: 33 passing
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
-- TrueForge MCP + sandbox + approval run: verified locally; an intentionally
+- TrueForge MCP + sandbox + approval run: verified end to end; an intentionally
   denied first decision proved that invalid evidence cannot cross the durable
-  write boundary
-- Public repository, Qodo PR review, video, and submission URL: pending publisher
-  approval; no evidence is claimed before those external steps occur
+  write boundary, and the corrected run produced the approved decision receipt
+- Public repository: `https://github.com/tobias-minibot/pricemcp`
+- Representative PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
+- Qodo review, video URL, and submission receipt: pending; no evidence is claimed
+  before those external steps occur
 
 ## Safety boundary
 

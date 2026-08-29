@@ -43,6 +43,20 @@ submission notes, and the exact prompt are in
 The standalone [architecture diagram](./docs/architecture.html) shows the MCP,
 sandbox, and approval boundaries used in the demo.
 
+## Verified TrueForge run
+
+The end-to-end local run completed on August 29, 2026 using TrueForge 0.1.4 and
+the local `qwen3:8b` Ollama model. TrueForge called PriceMCP twice over MCP,
+created and verified a sandbox artifact, asked the user to confirm the proposed
+decision, paused again at the MCP tool approval boundary, and appended a
+decision receipt only after approval.
+
+![Synthetic Mac mini evidence page](./docs/assets/pricemcp-mac-mini.png)
+
+![TrueForge paused before record_decision](./docs/assets/trueforge-approval.png)
+
+![TrueForge completed after approval](./docs/assets/trueforge-complete.png)
+
 ## Synthetic demo dataset
 
 The mockup runs separately from live data at `http://127.0.0.1:3200/`; its MCP
