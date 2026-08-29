@@ -28,6 +28,38 @@ unknown shipping and tax visible instead of hiding them in a headline price.
   tool response.
 - The only durable action is explicitly gated by TrueForge human approval.
 
+## Submission form copy
+
+### What does your project do?
+
+PriceMCP gives AI agents one MCP interface for trustworthy price comparison.
+It resolves an exact product variant before ranking normalized offers, then
+returns merchant identity, price, currency, freshness, availability,
+conditions, and provenance. The hackathon wedge focuses on Apple products and
+is demonstrated with a controlled synthetic benchmark, so judges can reproduce
+trust, membership, stale-price, marketplace, and unavailable-offer cases
+without relying on a retailer scrape during judging. It is for agent builders
+who need comparable evidence rather than an unverified headline price.
+
+### How did you use TrueForge?
+
+TrueForge runs a cautious procurement-analysis agent. The harness calls
+PriceMCP's real MCP tools to resolve and compare an exact Mac mini variant,
+starts a sandbox, runs Python to independently calculate savings, and writes a
+downloadable evidence brief. When the agent proposes the non-idempotent
+`record_decision` tool, TrueForge displays the exact request and pauses for
+human approval before PriceMCP can append durable state. The demo therefore
+shows tool access, sandbox execution, and a visible human control boundary in
+one workflow.
+
+### How did you use Qodo?
+
+Qodo reviewed the substantive approval-boundary pull request before it was
+merged. Its final review covered commit `671da48` and reported 0 bugs, 0 rule
+violations, and 0 requirement gaps, so there was no valid finding to fix or
+dismiss. The public PR preserves the completed review, earlier review state,
+final-code confirmation, CI result, and merge history as reproducible evidence.
+
 ## Reproduce the demo
 
 Requirements: Node.js 22+, npm, TrueForge 0.1.4+, and an OpenAI-compatible model
@@ -89,14 +121,25 @@ All displayed demo prices must retain the `synthetic: true` and
   denied first decision proved that invalid evidence cannot cross the durable
   write boundary, and the corrected run produced the approved decision receipt
 - Public repository: `https://github.com/tobias-minibot/pricemcp`
-- Representative PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
+- Representative merged PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
 - Qodo review: `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797`
   (0 bugs, 0 rule violations, 0 requirement gaps)
-- Qodo latest-commit confirmation:
-  `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464127242`
+- Qodo final-code confirmation through commit `671da48`:
+  `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464137458`
 - Demo video:
   `https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4`
+- Required YouTube submission URL: `https://youtu.be/UFDzSPeujXQ`
+  (unlisted; the GitHub release above is the verified backup copy)
 - Submission receipt: pending until the official form is sent
+
+## AI-use disclosure
+
+Codex, running through OpenClaw, assisted with implementation, tests,
+documentation, and demo preparation. Tobias directed scope and external
+actions, and the team verified the work through tests, TypeScript, GitHub
+Actions, primary-source checks, and the recorded TrueForge workflow. The
+demonstrated procurement agent itself runs the local `qwen3:8b` model through
+TrueForge.
 
 ## Safety boundary
 
