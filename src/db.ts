@@ -102,18 +102,25 @@ export function listCatalog(db: Db): CatalogProduct[] {
 export function listFeaturedProducts(db:Db,limit=6):any[]{return (db.prepare("SELECT * FROM products WHERE priority='priority' ORDER BY name LIMIT ?").all(limit) as any[]).map(row=>({...row,active:!!row.active,synthetic:!!row.synthetic,attributes:JSON.parse(row.attributes_json),score:1}))}
 
 export function recordCollection(db: Db, result: CollectorResult): number {
-  const started = result.observations[0]?.observed_at || new Date().toISOString();
-  const run = db.prepare('INSERT INTO collection_runs(source,method,started_at,status,errors_json) VALUES(?,?,?,?,?)').run(result.source,result.method,started,'running','[]');
-  const runId = Number(run.lastInsertRowid);
-  // A collector run is a snapshot for every canonical product/merchant pair it
-  // actually saw. Clear only those projections before inserting the new set so
-  // color/part-number churn cannot leave duplicate "current" offers behind.
-  const refreshedPairs=new Set(result.observations.filter(o=>o.matched_product_id&&(o.collection_status==='success'||o.collection_status==='unavailable')).map(o=>`${o.matched_product_id}\0${o.merchant_id}`));
-  for(const pair of refreshedPairs){const separator=pair.indexOf('\0');const productId=pair.slice(0,separator),merchantId=pair.slice(separator+1);db.prepare('DELETE FROM offers WHERE product_id=? AND merchant_id=?').run(productId,merchantId)}
-  for (const observation of result.observations) appendObservation(db, runId, observation);
-  db.prepare(`UPDATE collection_runs SET completed_at=?,status=?,matched_products=?,captured_offers=?,errors_json=? WHERE id=?`).run(
-    new Date().toISOString(),result.status,result.matched_products,result.observations.filter(o=>o.collection_status==='success').length,JSON.stringify(result.errors),runId);
-  return runId;
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const started = result.observations[0]?.observed_at || new Date().toISOString();
+    const run = db.prepare('INSERT INTO collection_runs(source,method,started_at,status,errors_json) VALUES(?,?,?,?,?)').run(result.source,result.method,started,'running','[]');
+    const runId = Number(run.lastInsertRowid);
+    // A collector run is a snapshot for every canonical product/merchant pair it
+    // actually saw. Clear only those projections before inserting the new set so
+    // color/part-number churn cannot leave duplicate "current" offers behind.
+    const refreshedPairs=new Set(result.observations.filter(o=>o.matched_product_id&&(o.collection_status==='success'||o.collection_status==='unavailable')).map(o=>`${o.matched_product_id}\0${o.merchant_id}`));
+    for(const pair of refreshedPairs){const separator=pair.indexOf('\0');const productId=pair.slice(0,separator),merchantId=pair.slice(separator+1);db.prepare('DELETE FROM offers WHERE product_id=? AND merchant_id=?').run(productId,merchantId)}
+    for (const observation of result.observations) appendObservation(db, runId, observation);
+    db.prepare(`UPDATE collection_runs SET completed_at=?,status=?,matched_products=?,captured_offers=?,errors_json=? WHERE id=?`).run(
+      new Date().toISOString(),result.status,result.matched_products,result.observations.filter(o=>o.collection_status==='success').length,JSON.stringify(result.errors),runId);
+    db.exec('COMMIT');
+    return runId;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 export function appendObservation(db: Db, runId: number | null, o: RawObservation): number {

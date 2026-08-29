@@ -123,7 +123,7 @@ or contact a merchant.
 ## Architecture
 
 ```text
-seller pages / embedded data
+seller pages / embedded data / Bright Data Web Unlocker
         ↓
 source-specific collectors
         ↓
@@ -162,6 +162,31 @@ The requested MacBook Air M4 13-inch 16GB/256GB remains as an **inactive referen
 | Amazon U.S. | Curated exact PDP HTML | Working | Only explicit `Sold by Amazon.com`; verified/authorized, trust 0.95 |
 
 Walmart presented a human-verification challenge; Costco, B&H, Adorama, and Abt returned access denial/challenge pages. PriceMCP does not bypass them. Target’s search shell did not provide stable public product data. Amazon search pages were too ambiguous, so the adapter uses a small curated ASIN set and rejects any buy box whose seller is not explicitly Amazon.com.
+
+### Bright Data retailer pipeline
+
+The optional Bright Data Web Unlocker transport lets the same evidence and
+matching policy operate on rendered retailer PDPs that reject direct requests.
+Copy `config/brightdata-retailers.example.json` to
+`config/brightdata-retailers.json`, add exact PDP URLs and fail-closed
+seller-of-record allowlists, then set `BRIGHTDATA_API_TOKEN` and
+`BRIGHTDATA_WEB_UNLOCKER_ZONE` in the service environment:
+
+```bash
+npm run collect:brightdata
+```
+
+Credentials are never stored in target rules or source control. The extractor
+prefers schema.org Product/Offer evidence and automatically falls back through
+the saved selector sequence when a retailer changes its primary HTML. If both
+paths fail, the run reports schema drift and emits no offer. A fetched price is
+still rejected unless its seller is allowlisted and its title resolves to the
+exact expected canonical SKU. Bright Data solves page access; it does not
+override PriceMCP's trust, freshness, or product-equivalence checks.
+
+The transport and source-contract tests are implemented, but no additional
+retailer is described as live until its Bright Data request and seller evidence
+have been verified with the hackathon account.
 
 Trust scores are manual MVP policy inputs, not review ratings. They reflect seller identity certainty, manufacturer authorization, source ownership, and fulfillment reliability. An offer is “trusted” only when the merchant is verified and authorized, score is at least 0.75, the seller is not unresolved marketplace inventory, and condition is new.
 
