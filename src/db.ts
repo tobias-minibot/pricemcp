@@ -161,8 +161,8 @@ export function getOffers(db: Db, productId: string, maxAgeHours?: number): any[
 
 export function recordDecision(db:Db,productId:string,merchantId:string,rationale:string):any{
   const product=getProduct(db,productId);if(!product)throw new Error(`Unknown product: ${productId}`);
-  const offer=getOffers(db,productId,6).find(o=>o.merchant_id===merchantId&&o.available&&o.freshness_status!=='stale');
-  if(!offer)throw new Error(`No fresh available offer for ${productId} from ${merchantId}`);
+  const offer=getOffers(db,productId,6).find(o=>o.merchant_id===merchantId&&o.available&&o.freshness_status!=='stale'&&o.trusted&&!o.membership_required&&o.condition==='new');
+  if(!offer)throw new Error(`No fresh trusted unconditional new offer for ${productId} from ${merchantId}`);
   const record={id:randomUUID(),product_id:productId,merchant_id:merchantId,amount_minor:offer.total_minor,currency:offer.currency,rationale,evidence_observed_at:offer.observed_at,created_at:new Date().toISOString()};
   db.prepare('INSERT INTO decision_records(id,product_id,merchant_id,amount_minor,currency,rationale,evidence_observed_at,created_at) VALUES(?,?,?,?,?,?,?,?)').run(record.id,record.product_id,record.merchant_id,record.amount_minor,record.currency,record.rationale,record.evidence_observed_at,record.created_at);
   return record;

@@ -32,13 +32,16 @@ Point out why the cheapest untrusted or conditional offer does not win.
 
 ## 1:25–1:55 — Sandbox execution
 
-Show TrueForge creating its sandbox and running Python. Open or download
+If the local model has stopped after comparison, send the prepared “Continue
+with sandbox stage 3” prompt from `docs/SUBMISSION.md`. Show TrueForge creating
+its sandbox and running Python. Open or download
 `procurement-brief.md`. Highlight the independently calculated savings, exact
 variant, merchant, evidence timestamp, and explicit tax/shipping uncertainty.
 
 ## 1:55–2:30 — Human approval boundary
 
-Show the pending `record_decision` tool call. Say:
+Send the prepared “Propose record_decision” prompt. Show the pending
+`record_decision` tool call. Say:
 
 “The research and calculation were autonomous. A durable action is not. The MCP
 tool is annotated as destructive and non-idempotent, and the TrueForge manifest
@@ -50,8 +53,9 @@ not place an order or contact a merchant.
 ## 2:30–3:00 — Reproducibility and Qodo
 
 Show the passing test command, public repository, and README’s
-`Qodo Code Review Evidence` section. Open the linked merged PR and briefly show
-the initial Qodo finding, the fix, and Qodo’s follow-up review.
+`Qodo Code Review Evidence` section. Open the linked PR and briefly show Qodo’s
+review of the substantive safety change, its zero-issue result, and the
+latest-commit confirmation.
 
 Close with: “PriceMCP turns price search into comparable evidence, then lets the
 human retain control at the action boundary.”

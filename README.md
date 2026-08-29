@@ -40,6 +40,23 @@ submission notes, and the exact prompt are in
 [`docs/SUBMISSION.md`](./docs/SUBMISSION.md). The timed recording plan is in
 [`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md).
 
+The standalone [architecture diagram](./docs/architecture.html) shows the MCP,
+sandbox, and approval boundaries used in the demo.
+
+## Verified TrueForge run
+
+The end-to-end local run completed on August 29, 2026 using TrueForge 0.1.4 and
+the local `qwen3:8b` Ollama model. TrueForge called PriceMCP twice over MCP,
+created and verified a sandbox artifact, asked the user to confirm the proposed
+decision, paused again at the MCP tool approval boundary, and appended a
+decision receipt only after approval.
+
+![Synthetic Mac mini evidence page](./docs/assets/pricemcp-mac-mini.png)
+
+![TrueForge paused before record_decision](./docs/assets/trueforge-approval.png)
+
+![TrueForge completed after approval](./docs/assets/trueforge-complete.png)
+
 ## Synthetic demo dataset
 
 The mockup runs separately from live data at `http://127.0.0.1:3200/`; its MCP
@@ -99,7 +116,9 @@ Read tools: `search_products`, `get_price`, `compare_prices`,
 
 Guarded write tool: `record_decision`. It appends a receipt tied to a fresh
 offer and is annotated as destructive and non-idempotent for approval-aware MCP
-clients. It does not purchase or contact a merchant.
+clients. The server independently rejects untrusted, membership-conditional,
+non-new, unavailable, or stale offers even after approval. It does not purchase
+or contact a merchant.
 
 ## Architecture
 
@@ -156,15 +175,22 @@ When `PRICEMCP_SCHEDULER=true` (default): priority collectors run every 45 minut
 
 ## Qodo Code Review Evidence
 
-This section is intentionally incomplete until the public repository exists and
-Qodo has reviewed a substantive pull request. The final submission will include:
+Qodo reviewed the substantive safety pull request that hardens the
+approval-gated procurement flow:
 
-- representative merged PR: **pending**
-- Qodo finding and resulting fix: **pending**
-- follow-up Qodo review confirming the fix: **pending**
+- representative PR: [#1 — Harden the TrueForge approval-gated procurement flow](https://github.com/tobias-minibot/pricemcp/pull/1)
+- Qodo review: [0 bugs, 0 rule violations, 0 requirement gaps](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797)
+- latest-commit confirmation: [Qodo review updated through `d7b423b`](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464127242)
 
-No screenshot-only or unverified review claim will be substituted for the linked
-PR evidence.
+The review found no material issue requiring a further code change. The linked
+PR and bot-authored comments are the source of truth; no screenshot-only claim
+is used as evidence.
+
+## Demo video
+
+Watch or download the [2:27 narrated hackathon demo](https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4).
+It shows PriceMCP research through MCP, TrueForge sandbox execution, and the
+human approval gate before a durable append-only decision receipt.
 
 ## Quote schema direction
 

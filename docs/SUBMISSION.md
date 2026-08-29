@@ -56,7 +56,20 @@ if necessary. Then prompt:
 > evidence brief, recommend the best unconditional trusted offer, and propose
 > recording the decision.
 
-Expected visible sequence:
+For the most reliable local-model demo, use three turns in the same TrueForge
+session. First submit the comparison prompt above. If the local model stops after
+the comparison, continue with:
+
+> Continue with sandbox stage 3. Use exec with an intent and no cwd, write all
+> currency as `USD` (no dollar signs), verify procurement-brief.md, and show its
+> absolute sandbox artifact link. Do not record the decision yet.
+
+Then submit:
+
+> The brief is verified. Propose record_decision for the selected exact product
+> and merchant. Do not bypass approval.
+
+Expected visible sequence across the session:
 
 1. TrueForge calls PriceMCP `find_best_offer` and `compare_prices` over MCP.
 2. TrueForge starts its sandbox, runs Python, and creates `procurement-brief.md`.
@@ -69,12 +82,21 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 32 passing
+- Automated tests: 33 passing
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
-- TrueForge MCP + sandbox + approval run: see final linked demo and run evidence
-- Public repository, Qodo PR review, video, and submission URL: pending publisher
-  approval; no evidence is claimed before those external steps occur
+- TrueForge MCP + sandbox + approval run: verified end to end; an intentionally
+  denied first decision proved that invalid evidence cannot cross the durable
+  write boundary, and the corrected run produced the approved decision receipt
+- Public repository: `https://github.com/tobias-minibot/pricemcp`
+- Representative PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
+- Qodo review: `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797`
+  (0 bugs, 0 rule violations, 0 requirement gaps)
+- Qodo latest-commit confirmation:
+  `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464127242`
+- Demo video:
+  `https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4`
+- Submission receipt: pending until the official form is sent
 
 ## Safety boundary
 
