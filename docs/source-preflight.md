@@ -23,8 +23,9 @@ Before custom collection, PriceMCP checked maintained primitives and stable sell
   across Walmart, Target, B&H, and Adorama. Saved HTML/Markdown repair rules
   handle page-shape changes, while seller allowlists, exact retailer identifiers,
   availability evidence, and canonical product matching remain fail-closed.
-  Target and B&H observations are retained but quarantined because the fetched
-  documents did not contain offer-scoped seller-of-record evidence.
+  Target and B&H exact-SKU first-party PDPs are accepted, with seller identity
+  labeled `retailer-owned-pdp-inferred` because the fetched documents did not
+  contain offer-scoped seller-of-record evidence.
 - Bright Data resolves page access only. It does not override PriceMCP trust
   policy, marketplace seller rejection, staleness, or landed-cost uncertainty.
 

@@ -217,7 +217,7 @@ The requested MacBook Air M4 13-inch 16GB/256GB remains as an **inactive referen
 | Apple U.S. | Curated product-selection bootstrap across four manufacturer pages | Working | Official, verified, authorized, trust 1.00 |
 | Best Buy U.S. | Official Products API when `BESTBUY_API_KEY` exists; embedded Apollo SSR prototype fallback | Working | Only exact canonical SKUs and first-party seller classification `1P`; verified/authorized, trust 0.94 |
 | Amazon U.S. | Curated exact PDP HTML | Working | Only explicit `Sold by Amazon.com`; verified/authorized, trust 0.95 |
-| Walmart, Target, B&H, Adorama | Bright Data MCP exact-PDP extraction with saved repair rules | Working for the AirPods Pro 3 validation set | Included as provenance-backed live observations; the normal trusted rank remains fail-closed until merchant authorization policy is confirmed |
+| Walmart, Target, B&H, Adorama | Bright Data MCP exact-PDP extraction with saved repair rules | Working for the AirPods Pro 3 validation set | Included in trusted comparison; structured versus retailer-PDP-inferred seller evidence remains explicit |
 
 Direct requests to Walmart, Target, B&H, and Adorama were blocked or unstable. The hackathon's Bright Data MCP now supplies the rendered page evidence through an authorized access layer; PriceMCP still performs its own exact-SKU, seller, availability, and freshness checks. Amazon search pages remain too ambiguous, so that adapter uses a small curated ASIN set and rejects any buy box whose seller is not explicitly Amazon.com.
 
@@ -240,17 +240,19 @@ prefers schema.org Product/Offer evidence and automatically falls back through
 the saved selector sequence when a retailer changes its primary HTML. If both
 paths fail, the run reports schema drift and emits no offer. A fetched price is
 still rejected unless its seller is allowlisted and its title resolves to the
-exact expected canonical SKU. Bright Data solves page access; it does not
+exact expected canonical SKU. Retailer-owned PDP seller inference requires an
+explicit target opt-in and a code-reviewed first-party domain allowlist. Bright Data solves page access; it does not
 override PriceMCP's trust, freshness, or product-equivalence checks.
 
 The live validation set uses one genuinely identical SKU: **Apple AirPods Pro 3,
 MFHP4LL/A / UPC 195950543698**. A four-page collection on 2026-08-29 around
 16:00 America/New_York observed Walmart and Target at USD 199.99, B&H at USD
 225.00, and Adorama at USD 249.00. Walmart's `Walmart.com` seller and Adorama's
-seller were offer-scoped structured evidence, so those offers were accepted.
-Target and B&H did not expose offer-scoped seller identity in the retrieved
-documents, so PriceMCP preserved their price evidence but quarantined both as
-`rejected_policy` instead of synthesizing a seller from generic page text.
+seller were offer-scoped structured evidence. Target and B&H did not expose
+offer-scoped seller identity in the retrieved documents; their exact-SKU
+first-party retailer PDPs are accepted with seller evidence explicitly labeled
+`retailer-owned-pdp-inferred`. Unknown or conflicting marketplace sellers are
+still rejected.
 Destination tax remains unknown, and delivery timing is location-dependent, so
 this is not represented as a guaranteed landed-cost comparison.
 

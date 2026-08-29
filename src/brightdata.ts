@@ -14,6 +14,7 @@ export interface BrightDataTarget {
   expected_product_id: string;
   source_product_id: string;
   accepted_sellers: string[];
+  allow_implicit_first_party?: boolean;
   html_patterns?: ExtractionPatterns;
   markdown_patterns?: ExtractionPatterns;
   selectors?: {
@@ -23,6 +24,22 @@ export interface BrightDataTarget {
     seller?: string[];
     sku?: string[];
   };
+}
+
+const IMPLICIT_FIRST_PARTY_HOSTS: Record<string, string[]> = {
+  target: ['target.com'],
+  'bh-photo': ['bhphotovideo.com']
+};
+
+function isApprovedImplicitFirstParty(target: BrightDataTarget): boolean {
+  if (target.allow_implicit_first_party !== true) return false;
+  const approvedHosts = IMPLICIT_FIRST_PARTY_HOSTS[target.merchant_id] || [];
+  try {
+    const hostname = new URL(target.url).hostname.toLowerCase();
+    return approvedHosts.some(host => hostname === host || hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
 }
 
 type ExtractedProduct = {
@@ -223,7 +240,8 @@ export async function collectBrightDataRetailers(
         const markdown = await brightDataRequest(target.url, token, zone, mcpUrl, 'markdown');
         extracted = extractBrightDataProduct(markdown, target);
       }
-      const sellerAllowed = target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
+      const implicitFirstParty = !extracted.seller && isApprovedImplicitFirstParty(target);
+      const sellerAllowed = implicitFirstParty || target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
       if (!extracted.source_product_id || extracted.source_product_id.toLowerCase() !== target.source_product_id.trim().toLowerCase()) {
         throw new Error(`Rejected retailer SKU: expected ${target.source_product_id}, observed ${extracted.source_product_id || 'unknown'}`);
       }
@@ -235,7 +253,7 @@ export async function collectBrightDataRetailers(
         currency: extracted.currency, price_minor: parsePrice(extracted.raw_price, extracted.currency), shipping_minor: null,
         available: extracted.available, condition: 'new', matched_product_id: exact ? target.expected_product_id : null,
         match_confidence: exact ? matched.confidence : 0, collection_status: collectionStatus,
-        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller || null, seller_evidence: extracted.seller ? 'structured' : 'missing', extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
+        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller || (implicitFirstParty ? target.merchant_name : null), seller_evidence: extracted.seller ? 'structured' : implicitFirstParty ? 'retailer-owned-pdp-inferred' : 'missing', extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
       });
       if(!sellerAllowed)errors.push(`${target.merchant_name} ${target.url}: Rejected seller of record: ${extracted.seller || 'unknown'}`);
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
