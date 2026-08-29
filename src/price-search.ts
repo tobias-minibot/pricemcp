@@ -17,8 +17,10 @@ export type UniversalOffer = {
   quote:{ amount_minor:number; currency:string; shipping_minor:number|null; total_minor:number; basis:string };
   availability:'available'|'unavailable'|'unknown';
   conditions:string[];
-  source:{ method:string; url:string|null };
+  match:{ canonical:boolean; confidence:number|null };
+  source:{ method:string; source_product_id:string|null; url:string|null };
   observed_at:string;
+  freshness:{ age_seconds:number; status:'fresh'|'recent'|'aging'|'stale' };
   expires_at:string|null;
 };
 
@@ -62,7 +64,9 @@ const productOffer=(offer:any):UniversalOffer=>({
   provider:{provider_id:offer.merchant_id,name:offer.merchant_name,trusted:!!offer.trusted,trust_score:Number(offer.trust_score)},
   quote:{amount_minor:offer.price_minor,currency:offer.currency,shipping_minor:offer.shipping_minor,total_minor:offer.total_minor,basis:offer.shipping_minor===null?'item price; shipping unknown':'delivered before destination tax'},
   availability:offer.available?'available':'unavailable',conditions:[offer.condition,offer.membership_required?'membership required':'no membership required'],
-  source:{method:offer.source_method,url:offer.url},observed_at:offer.observed_at,expires_at:null
+  match:{canonical:true,confidence:Number.isFinite(Number(offer.match_confidence))?Number(offer.match_confidence):null},
+  source:{method:offer.source_method,source_product_id:offer.source_product_id??null,url:offer.url},observed_at:offer.observed_at,
+  freshness:{age_seconds:offer.age_seconds,status:offer.freshness_status},expires_at:null
 });
 
 const demoFlightOffers=(subject:FlightPriceSubject):UniversalOffer[]=>{
@@ -78,7 +82,7 @@ const demoFlightOffers=(subject:FlightPriceSubject):UniversalOffer[]=>{
     provider:{provider_id:String(id),name:String(name),trusted:true,trust_score:null},
     quote:{amount_minor:Number(amount),currency:'USD',shipping_minor:0,total_minor:Number(amount),basis:'illustrative round-trip fare; taxes included; bags and seat fees may vary'},
     availability:'available' as const,conditions:[String(condition),'1 adult','demo fixture — not bookable'],
-    source:{method:'synthetic_flight_fixture',url:null},observed_at:observed,expires_at:null
+    match:{canonical:true,confidence:1},source:{method:'synthetic_flight_fixture',source_product_id:null,url:null},observed_at:observed,freshness:{age_seconds:0,status:'fresh' as const},expires_at:null
   }));
 };
 
@@ -99,12 +103,12 @@ async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<{offers:U
     const code=String(item.validatingAirlineCodes?.[0]||item.itineraries?.[0]?.segments?.[0]?.carrierCode||'airline');
     const amount=Math.round(Number(item.price?.grandTotal||item.price?.total||0)*100);
     const segments=(item.itineraries||[]).flatMap((itinerary:any)=>itinerary.segments||[]);
-    return {offer_id:`amadeus:${item.id||index}`,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production,provider:{provider_id:code,name:carriers[code]||code,trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.price?.currency||'USD'),shipping_minor:0,total_minor:amount,basis:'flight offer total; ancillary fees may vary'},availability:item.numberOfBookableSeats===0?'unavailable':'available',conditions:[`${Math.max(0,segments.length-(item.itineraries||[]).length)} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`],source:{method:production?'amadeus_flight_offers_live':'amadeus_flight_offers_test',url:'https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search'},observed_at:new Date().toISOString(),expires_at:item.lastTicketingDate?`${item.lastTicketingDate}T23:59:59Z`:null};
+    return {offer_id:`amadeus:${item.id||index}`,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production,provider:{provider_id:code,name:carriers[code]||code,trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.price?.currency||'USD'),shipping_minor:0,total_minor:amount,basis:'flight offer total; ancillary fees may vary'},availability:item.numberOfBookableSeats===0?'unavailable':'available',conditions:[`${Math.max(0,segments.length-(item.itineraries||[]).length)} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`],match:{canonical:true,confidence:1},source:{method:production?'amadeus_flight_offers_live':'amadeus_flight_offers_test',source_product_id:String(item.id||index),url:'https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search'},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:item.lastTicketingDate?`${item.lastTicketingDate}T23:59:59Z`:null};
   }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0&&offer.availability==='available').sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
   return {offers,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production};
 }
 
-export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allowDemoFlights?:boolean;maxAgeHours?:number}={}):Promise<PriceSearchResult>{
+export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allowDemoFlights?:boolean;forceDemoFlights?:boolean;maxAgeHours?:number}={}):Promise<PriceSearchResult>{
   if(subject.type==='incomplete')return{status:'no_match',subject,best_offer:null,offers:[],ranking:{policy:'complete itinerary required',explanation:[`Missing ${subject.missing.join(' and ')}; PriceMCP did not invent an itinerary.`]},dataset:process.env.PRICEMCP_DATASET||'live',synthetic:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'};
   if(subject.type==='product'){
     const candidates=searchProducts(db,subject.query,5),product=candidates[0],second=candidates[1];
@@ -116,7 +120,7 @@ export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allo
   }
   const normalized={...subject,origin:cityCode(subject.origin),destination:cityCode(subject.destination),cabin:subject.cabin||'economy',adults:subject.adults||1};
   try{
-    const hasCredentials=Boolean(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET);
+    const hasCredentials=!options.forceDemoFlights&&Boolean(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET);
     if(!hasCredentials&&!options.allowDemoFlights)return{status:'not_configured',subject:normalized,best_offer:null,offers:[],ranking:{policy:'lowest comparable eligible fare',explanation:['No flight provider is configured; PriceMCP did not invent a quote.']},dataset:'live',synthetic:false,error:'Amadeus credentials are not configured'};
     const result=hasCredentials?await amadeusFlightOffers(normalized):{offers:demoFlightOffers(normalized),dataset:'pricemcp-demo-v1',synthetic:true};
     return{status:result.offers.length?'ok':'no_match',subject:normalized,best_offer:result.offers[0]||null,offers:result.offers,ranking:{policy:'lowest comparable available total',explanation:[result.offers.length?'Fares are ordered by observed total, with data source and conditions preserved.':'No fare matched the requested itinerary and demo/provider scope.','No sponsored or affiliate ranking input is used.']},dataset:result.dataset,synthetic:result.synthetic};

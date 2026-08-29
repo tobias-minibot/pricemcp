@@ -1,29 +1,38 @@
 # Three-minute demo script
 
-## 0:00–0:35 — The universal price-search story
+## 0:00–0:10 — Establish the consumer promise
 
-Open the mobile-width homepage. Search for `Mac mini M4 16GB 256GB`, then
-`Flight Washington to Berlin 2026-09-18 2026-09-25`.
+Open the public homepage and say:
 
 “PriceMCP is one neutral price layer for people and AI agents. The same search
-surface resolves an exact product or a flight itinerary, normalizes comparable
-offers, and says why the best option ranks first. There are no ads or sponsored
-results.”
+surface serves the consumer UI, REST, and MCP. There are no ads or sponsored
+results.” Click **Open infrastructure console** immediately.
 
-Point out the persistent synthetic-data banner and the flight fixture’s explicit
-“not bookable” condition. The demo proves the abstraction without representing
-mock fares as live facts.
+## 0:10–0:40 — Show live MCP infrastructure
 
-## 0:35–0:55 — The architecture
+The console automatically invokes `search_price` for AirPods Pro 3 through an
+official MCP SDK client. In one sweep, point to:
 
-Show the README architecture for a moment:
+- the actual MCP request and live structured response;
+- the canonical product ID;
+- the provider fan-in count and names;
+- normalized quote totals, trust, freshness, timestamps, source methods, and
+  clickable retailer provenance;
+- measured invocation latency; and
+- the live `tools/list` schemas below the response.
 
-`TrueForge agent → PriceMCP MCP → normalized SQLite evidence → guarded action`
+Say: “This is not a UI reconstruction. This page asks the actual PriceMCP MCP
+server to list and execute its tools against the deployed read-only dataset.”
 
-Mention that the demo dataset deliberately contains official, trusted,
-membership, untrusted marketplace, stale, and unavailable offers.
+## 0:40–1:00 — Prove the cross-domain contract
 
-## 0:55–1:30 — Real MCP work
+Click **Run disclosed flight fixture**. Point out that the same `search_price`
+tool now accepts an itinerary and returns the same quote envelope with
+flight-specific conditions. Call out the visible `SYNTHETIC / NOT BOOKABLE`
+state. Say: “Without a configured live provider PriceMCP fails closed; this
+fixture proves the domain contract without fabricating a live fare.”
+
+## 1:00–1:35 — Real agent work
 
 In TrueForge, submit:
 
