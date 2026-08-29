@@ -7,6 +7,7 @@ import { createMcpServer } from './mcp.js';
 import { homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
+import { parseNaturalPriceQuery, searchPrice } from './price-search.js';
 
 export function buildApp(db=openDatabase()){
   const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo)seed(db);const app=Fastify({logger:true});
@@ -19,7 +20,7 @@ export function buildApp(db=openDatabase()){
   });
   const requestedMaxAgeHours=(query:any):number|undefined=>query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
-  app.get('/',(req,reply)=>{const q=String((req.query as any).q||'');reply.type('text/html').send(homePage(q?searchProducts(db,q):isDemo?listFeaturedProducts(db):[],q))});
+  app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
   app.get('/internal/health',()=>health(db));
@@ -29,8 +30,9 @@ export function buildApp(db=openDatabase()){
   app.get('/v1/products/:id/history',(req)=>history(db,(req.params as any).id,Number((req.query as any).days||30)));
   app.get('/v1/compare',(req)=>{const ids=String((req.query as any).ids||'').split(',').filter(Boolean);return{products:ids.map(id=>({product:getProduct(db,id),price:bestPrice(db,id)}))}});
   app.get('/v1/best-price/:id',(req)=>bestPrice(db,(req.params as any).id,requestedMaxAgeHours(req.query)));
+  app.post('/v1/search-price',async(req,reply)=>{const subject=(req.body||{}) as any;if(subject.type!=='product'&&subject.type!=='flight')return reply.code(400).send({status:'invalid_request',error:'type must be product or flight'});return searchPrice(db,subject,{allowDemoFlights:isDemo,maxAgeHours:requestedMaxAgeHours(req.query)});});
   const notImplemented=(category:string)=>({status:'not_implemented',category,dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,schema:{subject:{type:category},quote:{amount_minor:null,currency:null},provider:null,conditions:[],observed_at:null,expires_at:null},data:null});
-  app.get('/v1/fx',()=>notImplemented('fx'));app.get('/v1/flights',()=>notImplemented('flight'));
+  app.get('/v1/fx',()=>notImplemented('fx'));app.get('/v1/flights',async(req)=>{const query=req.query as any;if(!query.origin||!query.destination||!query.departure_date)return notImplemented('flight');return searchPrice(db,{type:'flight',origin:String(query.origin),destination:String(query.destination),departure_date:String(query.departure_date),return_date:query.return_date?String(query.return_date):undefined,cabin:query.cabin||'economy',adults:Number(query.adults||1)},{allowDemoFlights:isDemo});});
   app.all('/mcp',async(req,reply)=>{const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});reply.raw.on('close',()=>transport.close());await createMcpServer(db).connect(transport);await transport.handleRequest(req.raw,reply.raw,(req as any).body);reply.hijack()});
   return app;
 }
