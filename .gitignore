@@ -25,3 +25,5 @@ openclaw-workspace-state.json
 
 # Machine-specific build report
 PRICEMCP_MVP_REPORT.md
+.vercel
+.env*
