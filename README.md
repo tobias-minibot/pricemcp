@@ -175,16 +175,22 @@ When `PRICEMCP_SCHEDULER=true` (default): priority collectors run every 45 minut
 
 ## Qodo Code Review Evidence
 
-Qodo reviewed the substantive safety pull request that hardens the
-approval-gated procurement flow:
+The representative review trail is [PR #2 — Harden the final judge
+workflow](https://github.com/tobias-minibot/pricemcp/pull/2). Qodo surfaced two
+valid High-severity audit bugs: an MCP execution error could masquerade as a
+successful empty result, and the generation check accepted any Mac mini rather
+than proving the requested M6/16GB/256GB variant. Both findings are preserved
+in the [public Qodo review thread](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759).
 
-- representative merged PR: [#1 — Harden the TrueForge approval-gated procurement flow](https://github.com/tobias-minibot/pricemcp/pull/1)
-- Qodo review: [0 bugs, 0 rule violations, 0 requirement gaps](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797)
-- final-code confirmation: [Qodo review updated through `671da48`](https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464137458)
-
-The review found no material issue requiring a further code change. The linked
-PR and bot-authored comments are the source of truth; no screenshot-only claim
-is used as evidence.
+We changed `src/workflow-audit.ts` to reject `isError` tool responses and to
+validate invariant canonical attributes for both judge scenarios. Commit
+[`aa84309`](https://github.com/tobias-minibot/pricemcp/commit/aa8430945e8c4ce256bbbe29b5cffabe63569db6)
+contains the fixes. Qodo's follow-up review marked both findings **Resolved**
+and reported **0 remaining bugs** before the PR was merged; the same PR also
+shows the successful final CI check. [PR #1](https://github.com/tobias-minibot/pricemcp/pull/1)
+provides an earlier substantive Qodo-reviewed safety change and final-commit
+confirmation. Links, PR history, and bot-authored comments are the source of
+truth; screenshots are supplementary only.
 
 ## AI-use disclosure
 
