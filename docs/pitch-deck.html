@@ -152,7 +152,9 @@
   </section>
   <script>
     const slides=[...document.querySelectorAll('.slide')];
-    const requested=Math.max(1,Math.min(slides.length,Number(new URLSearchParams(location.search).get('slide')||1)));
+    const rawSlide=Number(new URLSearchParams(location.search).get('slide')||1);
+    const safeSlide=Number.isFinite(rawSlide)&&Number.isInteger(rawSlide)?rawSlide:1;
+    const requested=Math.max(1,Math.min(slides.length,safeSlide));
     slides.forEach((slide,index)=>slide.classList.toggle('active',index===requested-1));
     addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key===' '){location.search='?slide='+Math.min(slides.length,requested+1)}if(event.key==='ArrowLeft'){location.search='?slide='+Math.max(1,requested-1)}});
   </script>
