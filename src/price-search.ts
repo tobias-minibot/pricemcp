@@ -6,7 +6,8 @@ export type FlightPriceSubject = {
   type:'flight'; origin:string; destination:string; departure_date:string;
   return_date?:string; cabin?:'economy'|'premium_economy'|'business'|'first'; adults?:number;
 };
-export type PriceSearchSubject = ProductPriceSubject | FlightPriceSubject;
+export type IncompletePriceSubject = { type:'incomplete'; intent:'flight'; query:string; missing:string[] };
+export type PriceSearchSubject = ProductPriceSubject | FlightPriceSubject | IncompletePriceSubject;
 
 export type UniversalOffer = {
   offer_id:string;
@@ -30,6 +31,8 @@ export type PriceSearchResult = {
   error?:string;
 };
 
+export const isIsoDate=(value:string):boolean=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const parsed=new Date(`${value}T00:00:00Z`);return !Number.isNaN(parsed.valueOf())&&parsed.toISOString().slice(0,10)===value};
+
 const cityCode=(value:string):string=>{
   const normalized=value.trim().toLowerCase();
   if(['washington','washington dc','dc','was','dca','iad'].includes(normalized))return 'WAS';
@@ -37,13 +40,15 @@ const cityCode=(value:string):string=>{
   return value.trim().toUpperCase().slice(0,3);
 };
 
-export function parseNaturalPriceQuery(query:string,now=new Date()):PriceSearchSubject{
+export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearchSubject{
   const dates=query.match(/\b20\d{2}-\d{2}-\d{2}\b/g)||[];
   if(/\b(flight|fly|flying|fare)\b/i.test(query)||(/\b(washington|dc|was|dca|iad)\b/i.test(query)&&/\b(berlin|ber)\b/i.test(query))){
-    const route=query.match(/(?:flight\s+)?(?:from\s+)?([A-Za-z ]+?)\s+(?:to|→|-)\s+([A-Za-z ]+?)(?:\s+on|\s+depart|\s+return|\s+20\d{2}|$)/i);
-    const origin=cityCode(route?.[1]||'WAS'),destination=cityCode(route?.[2]||'BER');
-    const nextMonth=(day:number)=>new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,day)).toISOString().slice(0,10);
-    return {type:'flight',origin,destination,departure_date:dates[0]||nextMonth(18),return_date:dates[1]||nextMonth(25),cabin:'economy',adults:1};
+    const washington=/\b(washington(?:\s+dc)?|dc|was|dca|iad)\b/i.test(query),berlin=/\b(berlin|ber)\b/i.test(query);
+    const codes=query.toUpperCase().match(/\b([A-Z]{3})\s+(?:TO|→|-)\s+([A-Z]{3})\b/);
+    const origin=washington&&berlin?'WAS':codes?.[1],destination=washington&&berlin?'BER':codes?.[2];
+    const missing=[...(!origin||!destination?['origin/destination']:[]),...(dates.length<2?['departure_date/return_date']:[])];
+    if(missing.length)return{type:'incomplete',intent:'flight',query,missing};
+    return {type:'flight',origin:cityCode(origin!),destination:cityCode(destination!),departure_date:dates[0]!,return_date:dates[1]!,cabin:'economy',adults:1};
   }
   return {type:'product',query:query.trim()};
 }
@@ -57,6 +62,7 @@ const productOffer=(offer:any):UniversalOffer=>({
 });
 
 const demoFlightOffers=(subject:FlightPriceSubject):UniversalOffer[]=>{
+  if(subject.origin!=='WAS'||subject.destination!=='BER'||subject.departure_date!=='2026-09-18'||subject.return_date!=='2026-09-25'||(subject.cabin||'economy')!=='economy'||(subject.adults||1)!==1)return[];
   const observed=new Date().toISOString();
   return [
     ['united','United',61200,'1 stop · economy · round trip'],
@@ -94,18 +100,20 @@ async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<{offers:U
 }
 
 export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allowDemoFlights?:boolean;maxAgeHours?:number}={}):Promise<PriceSearchResult>{
+  if(subject.type==='incomplete')return{status:'no_match',subject,best_offer:null,offers:[],ranking:{policy:'complete itinerary required',explanation:[`Missing ${subject.missing.join(' and ')}; PriceMCP did not invent an itinerary.`]},dataset:process.env.PRICEMCP_DATASET||'live',synthetic:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'};
   if(subject.type==='product'){
-    const product=searchProducts(db,subject.query,1)[0];
-    if(!product)return{status:'no_match',subject:{type:'product',query:subject.query},best_offer:null,offers:[],ranking:{policy:'exact product identity first',explanation:['No canonical product matched; no nearby variant was substituted.']},dataset:process.env.PRICEMCP_DATASET||'live',synthetic:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'};
-    const offers=getOffers(db,product.id,options.maxAgeHours||6).filter(offer=>offer.available&&!offer.membership_required).map(productOffer);
+    const candidates=searchProducts(db,subject.query,5),product=candidates[0],second=candidates[1];
+    const ambiguous=!product||Number(product.score)<1||second&&Number(second.score)>=Number(product.score);
+    if(ambiguous)return{status:'no_match',subject:{type:'product',query:subject.query,candidates:candidates.slice(0,3).map(({id,name,score})=>({product_id:id,name,match_score:score}))},best_offer:null,offers:[],ranking:{policy:'unique canonical product identity first',explanation:['The query did not identify one unique canonical variant; no nearby or arbitrary variant was substituted.']},dataset:process.env.PRICEMCP_DATASET||'live',synthetic:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'};
+    const offers=getOffers(db,product.id,options.maxAgeHours??6).filter(offer=>offer.available&&!offer.membership_required).map(productOffer);
     const trusted=offers.filter(offer=>offer.provider.trusted),best=trusted[0]||offers[0]||null;
-    return{status:'ok',subject:{type:'product',query:subject.query,product_id:product.id,name:product.name,attributes:product.attributes},best_offer:best,offers,ranking:{policy:'exact match, then trusted fresh unconditional total',explanation:[best?`${best.provider.name} is the highest-ranked fresh exact-match offer.`:'No fresh eligible offer is available.','Sponsored placement and affiliate economics are not ranking inputs.']},dataset:product.dataset||'live',synthetic:!!product.synthetic};
+    return{status:best?'ok':'no_match',subject:{type:'product',query:subject.query,product_id:product.id,name:product.name,attributes:product.attributes},best_offer:best,offers,ranking:{policy:'exact match, then trusted fresh unconditional total',explanation:[best?`${best.provider.name} is the highest-ranked fresh exact-match offer.`:'The product matched, but no fresh eligible offer is available.','Sponsored placement and affiliate economics are not ranking inputs.']},dataset:product.dataset||'live',synthetic:!!product.synthetic};
   }
   const normalized={...subject,origin:cityCode(subject.origin),destination:cityCode(subject.destination),cabin:subject.cabin||'economy',adults:subject.adults||1};
   try{
     const hasCredentials=Boolean(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET);
     if(!hasCredentials&&!options.allowDemoFlights)return{status:'not_configured',subject:normalized,best_offer:null,offers:[],ranking:{policy:'lowest comparable eligible fare',explanation:['No flight provider is configured; PriceMCP did not invent a quote.']},dataset:'live',synthetic:false,error:'Amadeus credentials are not configured'};
     const result=hasCredentials?await amadeusFlightOffers(normalized):{offers:demoFlightOffers(normalized),dataset:'pricemcp-demo-v1',synthetic:true};
-    return{status:result.offers.length?'ok':'no_match',subject:normalized,best_offer:result.offers[0]||null,offers:result.offers,ranking:{policy:'lowest comparable available total',explanation:['Fares are ordered by observed total, with data source and conditions preserved.','No sponsored or affiliate ranking input is used.']},dataset:result.dataset,synthetic:result.synthetic};
+    return{status:result.offers.length?'ok':'no_match',subject:normalized,best_offer:result.offers[0]||null,offers:result.offers,ranking:{policy:'lowest comparable available total',explanation:[result.offers.length?'Fares are ordered by observed total, with data source and conditions preserved.':'No fare matched the requested itinerary and demo/provider scope.','No sponsored or affiliate ranking input is used.']},dataset:result.dataset,synthetic:result.synthetic};
   }catch(error){return{status:'provider_error',subject:normalized,best_offer:null,offers:[],ranking:{policy:'fail closed',explanation:['The provider failed, so PriceMCP emitted no fare.']},dataset:'live',synthetic:false,error:error instanceof Error?error.message:String(error)};}
 }
