@@ -9,7 +9,9 @@ human approval before writing a durable decision.
 **Production:** https://pricemcp.vercel.app
 
 The Vercel deployment serves a timestamped, read-only snapshot of the verified
-live dataset through the website, REST, and MCP. Prices are evidence captured at
+live dataset through the website, REST, and MCP. Its MCP surface omits the
+`record_decision` write tool, and the SQLite connection enforces query-only mode.
+Prices are evidence captured at
 their displayed timestamps—not continuously refreshed inside Vercel—and shipping
 and destination tax remain unknown unless explicitly shown. The separate local
 judge demo remains synthetic and non-purchasable so agent behavior can be tested
