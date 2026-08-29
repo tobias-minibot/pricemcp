@@ -12,7 +12,9 @@ const appPromise = (async () => {
     copyFileSync(join(process.cwd(), 'data', 'vercel-snapshot.db'), runtimeDatabase);
   }
   process.env.PRICEMCP_SCHEDULER = 'false';
-  const app = buildApp(openDatabase(runtimeDatabase));
+  const db = openDatabase(runtimeDatabase);
+  db.exec('PRAGMA query_only=ON');
+  const app = buildApp(db, { readOnly: true });
   await app.ready();
   return app;
 })();

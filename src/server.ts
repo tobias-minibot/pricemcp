@@ -9,8 +9,8 @@ import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
 
-export function buildApp(db=openDatabase()){
-  const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo)seed(db);const app=Fastify({logger:true});
+export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
+  const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo&&!options.readOnly)seed(db);const app=Fastify({logger:true});
   const apiToken=process.env.PRICEMCP_API_TOKEN;
   if(apiToken)app.addHook('onRequest',async(req,reply)=>{
     if(req.url.startsWith('/internal/health'))return;
@@ -33,7 +33,7 @@ export function buildApp(db=openDatabase()){
   app.post('/v1/search-price',async(req,reply)=>{const input=(req.body||{}) as any;if(input.type!=='product'&&input.type!=='flight')return reply.code(400).send({status:'invalid_request',error:'type must be product or flight'});if(input.type==='product'){if(typeof input.query!=='string'||!input.query.trim())return reply.code(400).send({status:'invalid_request',error:'product query is required'});return searchPrice(db,{type:'product',query:input.query.trim()},{maxAgeHours:requestedMaxAgeHours(req.query)});}const required=['origin','destination','departure_date'] as const;if(required.some(field=>typeof input[field]!=='string'||!input[field].trim()))return reply.code(400).send({status:'invalid_request',error:'origin, destination, and departure_date are required'});if(!isIsoDate(input.departure_date)||input.return_date&&!isIsoDate(input.return_date))return reply.code(400).send({status:'invalid_request',error:'flight dates must be valid YYYY-MM-DD values'});const cabins=['economy','premium_economy','business','first'] as const;if(input.cabin!==undefined&&!cabins.includes(input.cabin))return reply.code(400).send({status:'invalid_request',error:'unsupported cabin'});const cabin=input.cabin||'economy',adults=Number(input.adults||1);if(!Number.isInteger(adults)||adults<1||adults>9)return reply.code(400).send({status:'invalid_request',error:'adults must be an integer from 1 to 9'});return searchPrice(db,{type:'flight',origin:input.origin,destination:input.destination,departure_date:input.departure_date,...(input.return_date?{return_date:input.return_date}:{}),cabin,adults},{allowDemoFlights:isDemo});});
   const notImplemented=(category:string)=>({status:'not_implemented',category,dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,schema:{subject:{type:category},quote:{amount_minor:null,currency:null},provider:null,conditions:[],observed_at:null,expires_at:null},data:null});
   app.get('/v1/fx',()=>notImplemented('fx'));app.get('/v1/flights',async(req)=>{const query=req.query as any;if(!query.origin||!query.destination||!query.departure_date)return notImplemented('flight');return searchPrice(db,{type:'flight',origin:String(query.origin),destination:String(query.destination),departure_date:String(query.departure_date),return_date:query.return_date?String(query.return_date):undefined,cabin:query.cabin||'economy',adults:Number(query.adults||1)},{allowDemoFlights:isDemo});});
-  app.all('/mcp',async(req,reply)=>{const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});reply.raw.on('close',()=>transport.close());await createMcpServer(db).connect(transport);await transport.handleRequest(req.raw,reply.raw,(req as any).body);reply.hijack()});
+  app.all('/mcp',async(req,reply)=>{const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});reply.raw.on('close',()=>transport.close());await createMcpServer(db,{allowWrites:!options.readOnly}).connect(transport);await transport.handleRequest(req.raw,reply.raw,(req as any).body);reply.hijack()});
   return app;
 }
 
