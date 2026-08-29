@@ -117,7 +117,7 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 34 passing
+- Automated tests: 36 passing
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
 - TrueForge MCP + sandbox + approval run: verified end to end; an intentionally
