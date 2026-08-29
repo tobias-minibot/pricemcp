@@ -14,7 +14,7 @@ const historyView=(data:any)=>({product_id:data.product_id,days:data.days,curren
 export function createMcpServer(db:Db):McpServer{
   const server=new McpServer({name:'PriceMCP',version:'0.1.0'});
   server.registerTool('search_price',{description:'Universal PriceMCP search across supported price subjects. Products and flights share a normalized evidence envelope while retaining category-specific subject fields.',inputSchema:{type:z.enum(['product','flight']),query:z.string().optional(),origin:z.string().optional(),destination:z.string().optional(),departure_date:z.string().optional(),return_date:z.string().optional(),cabin:z.enum(['economy','premium_economy','business','first']).optional(),adults:z.number().int().min(1).max(9).optional()}},async(input)=>{
-    if(input.type==='product')return response(await searchPrice(db,{type:'product',query:input.query||''},{allowDemoFlights:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'}));
+    if(input.type==='product'){if(!input.query?.trim())return response({status:'invalid_request',error:'query is required for product searches'});return response(await searchPrice(db,{type:'product',query:input.query.trim()}));}
     if(!input.origin||!input.destination||!input.departure_date)return response({status:'invalid_request',error:'origin, destination, and departure_date are required for flight searches'});
     return response(await searchPrice(db,{type:'flight',origin:input.origin,destination:input.destination,departure_date:input.departure_date,return_date:input.return_date,cabin:input.cabin,adults:input.adults},{allowDemoFlights:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'}));
   });
