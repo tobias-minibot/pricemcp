@@ -82,10 +82,12 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 32 passing
+- Automated tests: 33 passing
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
-- TrueForge MCP + sandbox + approval run: see final linked demo and run evidence
+- TrueForge MCP + sandbox + approval run: verified locally; an intentionally
+  denied first decision proved that invalid evidence cannot cross the durable
+  write boundary
 - Public repository, Qodo PR review, video, and submission URL: pending publisher
   approval; no evidence is claimed before those external steps occur
 
