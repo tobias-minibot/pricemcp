@@ -8,7 +8,7 @@ human approval before writing a durable decision.
 
 **Hackathon judge links:** [live infrastructure console](https://pricemcp.vercel.app/developer) ·
 [consumer search](https://pricemcp.vercel.app) ·
-[2:27 demo video](https://youtu.be/UFDzSPeujXQ) ·
+[2:08 judge-first demo video](https://youtu.be/TUL5xt7JkJ4) ·
 [TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
 [public Qodo review evidence](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759)
 
@@ -358,7 +358,7 @@ product, not evidence that its output was accepted without verification.
 
 ## Demo video
 
-Watch the [2:27 narrated hackathon demo on YouTube](https://youtu.be/UFDzSPeujXQ),
+Watch the [2:08 judge-first infrastructure demo on YouTube](https://youtu.be/TUL5xt7JkJ4),
 or use the [GitHub release copy](https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4)
 as a backup.
 It shows PriceMCP research through MCP, TrueForge sandbox execution, and the

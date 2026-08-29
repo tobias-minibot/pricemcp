@@ -1,51 +1,67 @@
-# PriceMCP demo narration
+# PriceMCP demo narration — infrastructure cut
 
-## 0:00–0:25 — Why this exists
+The submission cut is approximately 2:08 and leads with the live MCP
+infrastructure proof. Every live claim in the narration is exercised against the
+public deployment; the flight example remains explicitly synthetic and
+non-bookable.
 
-An AI can find a price, but that does not make the offer comparable or safe to
-recommend. The result might be the wrong variant, stale, unavailable,
-membership-only, or sold by an unknown marketplace seller. PriceMCP gives
-agents one evidence-backed interface for exact product identity, normalized
-prices, merchant trust, freshness, conditions, and history.
+## 0:00–0:12 — Product thesis
 
-## 0:25–0:55 — Controlled evidence
+PriceMCP is not a shopping website. It is an MCP-first, AI-native price
+infrastructure layer: one neutral interface for asking what something costs
+across products, flights, and future price domains.
 
-This public demo uses synthetic, non-purchasable data so anyone can reproduce
-the behavior without scraping a live store during judging. The Mac mini fixture
-deliberately includes stale offers, an unavailable offer, a marketplace seller,
-a membership price, an official reference, and an unconditional trusted offer.
-Northstar Retail wins at six hundred twenty-two dollars and eleven cents. It is
-seventy-six dollars and eighty-nine cents below the official benchmark.
+## 0:12–0:26 — Real MCP invocation
 
-## 0:55–1:25 — Architecture
+Here is the public production console. An official Model Context Protocol SDK
+client calls the deployed PriceMCP server. The request resolves AirPods Pro 3 to
+one canonical entity, then fans in observations from five trusted retailers.
 
-TrueForge runs the agent session. It calls PriceMCP over Model Context Protocol
-to resolve the exact variant and compare trusted offers. PriceMCP returns
-deterministic evidence from its normalized SQLite model. TrueForge then starts
-its sandbox, runs a calculation, and writes a procurement brief with the exact
-merchant, amount, timestamp, and disclosed assumptions.
+## 0:26–0:40 — Structured response
 
-## 1:25–2:05 — Human control
+This is the actual MCP request and structured response, not a copied REST
+result. PriceMCP preserves the canonical product, the winning offer, every
+normalized alternative, the ranking policy, and the measured invocation
+latency.
 
-The research and computation are autonomous. Durable state is not. After the
-sandbox artifact was verified, the agent proposed the record-decision tool.
-TrueForge first asked the user to confirm the proposed choice, then paused again
-at the actual MCP tool call. The request, product, merchant, and rationale are
-visible before anything changes. The user can allow or deny it.
+## 0:40–0:55 — Normalization and provenance
 
-## 2:05–2:30 — Verified outcome
+The heterogeneous retailer records become one comparable quote envelope. Each
+offer keeps merchant trust, normalized total, match confidence, observation
+time, freshness, collection method, source product identifier, and a clickable
+provenance URL.
 
-After approval, PriceMCP independently rechecked that the selected offer was
-fresh, trusted, unconditional, available, and new. Only then did it append a
-decision receipt. It did not purchase, reserve inventory, contact a merchant,
-or spend money. The final response keeps the synthetic-data, tax, and shipping
-disclosures visible.
+## 0:55–1:08 — Tool discovery
 
-## 2:30–3:00 — Reproducibility
+Agents discover seven production tools through live tools list. Search price is
+the universal primitive. Product-specific tools remain for compatibility,
+while all exposed production tools are read-only and described by
+machine-readable JSON schemas.
 
-The repository is public and includes the TrueForge agent manifest, MCP server,
-synthetic benchmark, architecture diagram, demo script, and evidence
-screenshots. Thirty-three automated tests, TypeScript checking, dependency
-audit, and GitHub Actions pass. The representative pull request is reviewed
-through Qodo and linked from the README. PriceMCP turns price search into
-comparable evidence while leaving the consequential action with the human.
+## 1:08–1:23 — Cross-domain contract
+
+The same search price tool also accepts a complete flight itinerary and returns
+the same evidence envelope with domain-specific fields. This example is
+intentionally synthetic and not bookable. Without a configured live provider,
+PriceMCP fails closed instead of inventing a fare.
+
+## 1:23–1:34 — Agent execution
+
+TrueForge proves that an agent can use the layer. It calls PriceMCP, compares
+exact evidence, runs an independent calculation in a sandbox, and produces a
+procurement brief with disclosed assumptions.
+
+## 1:34–1:49 — Human approval boundary
+
+Research and computation are autonomous. Durable state is not. Before recording
+a decision, the agent pauses at an explicit human approval boundary. The
+reviewed request is append-only; it does not purchase, reserve inventory,
+contact a merchant, or spend money.
+
+## 1:49–2:08 — Reproducibility
+
+The complete system is public and reproducible: MCP server, normalized data
+model, product and flight contract, TrueForge manifest, Qodo-reviewed pull
+requests, automated tests, workflow audits, and live deployment. PriceMCP turns
+a price question into structured, source-backed evidence that any agent can
+use.
