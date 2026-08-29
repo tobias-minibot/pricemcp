@@ -9,6 +9,8 @@ human approval before writing a durable decision.
 > The default public demo is synthetic, non-purchasable data. It is designed to
 > test agent behavior without presenting scraped prices as live facts.
 
+![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
+
 ## TrueForge agent demo
 
 ```text
