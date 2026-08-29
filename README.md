@@ -52,7 +52,9 @@ The separate [10-slide investor deck](./docs/assets/pricemcp-pitch-deck.pdf) and
 [2:25 narrated pitch](https://youtu.be/l5E2G2A_r2A) explain the company-level
 thesis: PriceMCP can become the neutral price data plane beneath AI shopping,
 travel, and other price-aware agents. The
-[editable HTML source](./docs/pitch-deck.html) is print-ready at 16:9.
+[editable HTML source](./docs/pitch-deck.html) is print-ready at 16:9. A
+[standalone SVG wordmark](./docs/assets/pricemcp-logo.svg) uses the same visual
+system as the deck and product.
 
 The deck deliberately separates verified MVP proof from hypotheses. Product
 metrics describe the deployed snapshot and test suite; the business model,
