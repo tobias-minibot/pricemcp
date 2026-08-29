@@ -6,7 +6,10 @@ Context Protocol (MCP). The hackathon workflow adds a TrueForge procurement
 agent that calls PriceMCP, computes an evidence brief in a sandbox, and requires
 human approval before writing a durable decision.
 
-**Production:** https://pricemcp.vercel.app
+**Hackathon judge links:** [live read-only app](https://pricemcp.vercel.app) ·
+[2:27 demo video](https://youtu.be/UFDzSPeujXQ) ·
+[TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
+[public Qodo review evidence](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759)
 
 The Vercel deployment serves a timestamped, read-only snapshot of the verified
 live dataset through the website, REST, and MCP. Its MCP surface omits the
@@ -16,6 +19,11 @@ their displayed timestamps—not continuously refreshed inside Vercel—and ship
 and destination tax remain unknown unless explicitly shown. The separate local
 judge demo remains synthetic and non-purchasable so agent behavior can be tested
 deterministically.
+
+The live MCP endpoint is `https://pricemcp.vercel.app/mcp`. The separate
+TrueForge judge workflow intentionally uses the local synthetic service so its
+trust, stale-offer, membership, marketplace, and approval-gate behavior remains
+reproducible and visibly non-purchasable.
 
 ## One neutral search surface
 
