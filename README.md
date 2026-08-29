@@ -40,6 +40,9 @@ submission notes, and the exact prompt are in
 [`docs/SUBMISSION.md`](./docs/SUBMISSION.md). The timed recording plan is in
 [`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md).
 
+The standalone [architecture diagram](./docs/architecture.html) shows the MCP,
+sandbox, and approval boundaries used in the demo.
+
 ## Synthetic demo dataset
 
 The mockup runs separately from live data at `http://127.0.0.1:3200/`; its MCP

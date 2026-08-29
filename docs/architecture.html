@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PriceMCP TrueForge Architecture</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f8fc;
+    --fg: #111827;
+    --muted: #64748b;
+    --line: #64748b;
+    --input: #dbeafe;
+    --process: #e0e7ff;
+    --storage: #ccfbf1;
+    --external: #fef3c7;
+    --risk: #fee2e2;
+    --white: #ffffff;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1180px; margin: 24px auto; padding: 0 20px; }
+  svg { width: 100%; height: auto; display: block; }
+  .title { font-size: 25px; font-weight: 750; fill: var(--fg); }
+  .subtitle { font-size: 14px; fill: var(--muted); }
+  .label { font-size: 15px; font-weight: 700; fill: var(--fg); }
+  .small { font-size: 12px; fill: var(--muted); }
+  .node { stroke: var(--line); stroke-width: 1.2; }
+  .input { fill: var(--input); }
+  .process { fill: var(--process); }
+  .storage { fill: var(--storage); }
+  .external { fill: var(--external); }
+  .risk { fill: var(--risk); }
+  .white { fill: var(--white); }
+  .edge { stroke: var(--line); stroke-width: 2; fill: none; marker-end: url(#arrow); }
+  .guard { stroke: #dc2626; stroke-width: 2; stroke-dasharray: 7 5; fill: none; }
+  .zone { fill: none; stroke: #94a3b8; stroke-width: 1; stroke-dasharray: 7 5; }
+</style>
+<main>
+  <svg viewBox="0 0 1160 650" role="img" aria-labelledby="title desc">
+    <title id="title">PriceMCP TrueForge agent architecture</title>
+    <desc id="desc">A user request enters TrueForge, which queries PriceMCP over MCP, runs a calculation in a sandbox, and pauses for human approval before appending a decision record.</desc>
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+      </marker>
+    </defs>
+
+    <text x="28" y="40" class="title">PriceMCP: evidence first, action guarded</text>
+    <text x="28" y="66" class="subtitle">TrueForge runs the agent; PriceMCP supplies deterministic price evidence; the human retains the durable-action boundary.</text>
+
+    <path class="edge" d="M 198 180 H 276" />
+    <path class="edge" d="M 478 180 H 548" />
+    <path class="edge" d="M 750 180 H 826" />
+    <path class="edge" d="M 928 238 V 315" />
+    <path class="edge" d="M 826 375 H 748" />
+    <path class="edge" d="M 548 375 H 480" />
+    <path class="edge" d="M 378 435 V 506 H 548" />
+    <path class="edge" d="M 750 546 H 826" />
+
+    <rect x="24" y="128" width="174" height="104" rx="14" class="node input" />
+    <text x="48" y="166" class="label">Human request</text>
+    <text x="48" y="192" class="small">“Find the best trusted</text>
+    <text x="48" y="210" class="small">Mac mini offer.”</text>
+
+    <rect x="276" y="116" width="202" height="128" rx="14" class="node process" />
+    <text x="300" y="154" class="label">TrueForge session</text>
+    <text x="300" y="180" class="small">Persistent agent loop</text>
+    <text x="300" y="199" class="small">MCP tools + state</text>
+    <text x="300" y="218" class="small">Local Ollama model</text>
+
+    <rect x="548" y="116" width="202" height="128" rx="14" class="node external" />
+    <text x="572" y="154" class="label">PriceMCP MCP</text>
+    <text x="572" y="180" class="small">Resolve exact product</text>
+    <text x="572" y="199" class="small">Compare trusted offers</text>
+    <text x="572" y="218" class="small">Return source evidence</text>
+
+    <rect x="826" y="116" width="278" height="128" rx="14" class="node storage" />
+    <text x="850" y="154" class="label">Normalized evidence store</text>
+    <text x="850" y="180" class="small">Canonical variants · seller identity</text>
+    <text x="850" y="199" class="small">Price · freshness · conditions</text>
+    <text x="850" y="218" class="small">SQLite observations + history</text>
+
+    <rect x="826" y="315" width="278" height="120" rx="14" class="node white" />
+    <text x="850" y="352" class="label">Ranked offer response</text>
+    <text x="850" y="378" class="small">Best trusted: USD 622.11</text>
+    <text x="850" y="397" class="small">Official: USD 699.00</text>
+    <text x="850" y="416" class="small">Synthetic and non-purchasable</text>
+
+    <rect x="548" y="315" width="202" height="120" rx="14" class="node process" />
+    <text x="572" y="352" class="label">TrueForge sandbox</text>
+    <text x="572" y="378" class="small">Run calculation</text>
+    <text x="572" y="397" class="small">Write evidence brief</text>
+    <text x="572" y="416" class="small">Return artifact</text>
+
+    <rect x="276" y="315" width="204" height="120" rx="14" class="node white" />
+    <text x="300" y="352" class="label">Procurement brief</text>
+    <text x="300" y="378" class="small">Exact variant + merchant</text>
+    <text x="300" y="397" class="small">USD 76.89 savings</text>
+    <text x="300" y="416" class="small">Tax/shipping disclosed</text>
+
+    <rect x="548" y="490" width="202" height="112" rx="14" class="node risk" />
+    <text x="572" y="528" class="label">Human approval</text>
+    <text x="572" y="554" class="small">TrueForge pauses here</text>
+    <text x="572" y="573" class="small">before durable state</text>
+
+    <rect x="826" y="490" width="278" height="112" rx="14" class="node storage" />
+    <text x="850" y="528" class="label">Append-only decision receipt</text>
+    <text x="850" y="554" class="small">No purchase · no reservation</text>
+    <text x="850" y="573" class="small">No merchant contact</text>
+
+    <rect x="524" y="468" width="252" height="156" rx="18" class="guard" />
+    <text x="536" y="640" class="small" fill="#b91c1c">CONTROL BOUNDARY</text>
+  </svg>
+</main>
