@@ -13,8 +13,9 @@ human approval before writing a durable decision.
 
 The hackathon interface turns the infrastructure into a simple consumer and
 agent experience: **ask what something costs; get the best trustworthy options.**
-The mobile-first homepage accepts either a product request such as `Mac mini M4`
-or a small flight vertical such as `Flight Washington to Berlin`. Results explain
+The mobile-first homepage accepts either an exact product request such as
+`Mac mini M4 16GB 256GB` or the narrow flight demo
+`Flight Washington to Berlin 2026-09-18 2026-09-25`. Results explain
 the winner using price, provider trust, availability, freshness, and product or
 itinerary match—never advertising or affiliate economics.
 
@@ -42,6 +43,9 @@ synthetic because the test dataset is restricted. In the synthetic demo service,
 the WAS→BER fixture is visibly labeled demo-only and not bookable. In live mode
 without credentials—or when the provider fails—PriceMCP returns no fare rather
 than inventing one.
+
+Incomplete itineraries and ambiguous product queries return candidates or
+missing-field guidance, never an arbitrary variant, route, or travel date.
 
 ![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
 

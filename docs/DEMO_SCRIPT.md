@@ -3,7 +3,7 @@
 ## 0:00–0:35 — The universal price-search story
 
 Open the mobile-width homepage. Search for `Mac mini M4 16GB 256GB`, then
-`Flight Washington to Berlin`.
+`Flight Washington to Berlin 2026-09-18 2026-09-25`.
 
 “PriceMCP is one neutral price layer for people and AI agents. The same search
 surface resolves an exact product or a flight itinerary, normalizes comparable
