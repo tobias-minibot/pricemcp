@@ -1,0 +1,23 @@
+node_modules/
+dist/
+data/*.db*
+data/raw/
+.env
+coverage/
+.DS_Store
+*.log
+
+# OpenClaw operator workspace (not part of the public PriceMCP project)
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+SOUL.md
+TOOLS.md
+USER.md
+memory/
+media/inbound/
+openclaw-workspace-state.json
+
+# Machine-specific build report
+PRICEMCP_MVP_REPORT.md

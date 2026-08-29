@@ -1,0 +1,182 @@
+# PriceMCP
+
+PriceMCP is a working MVP for trusted, normalized, freshness-aware price lookup.
+It exposes one SQLite-backed evidence model through a website, REST, and Model
+Context Protocol (MCP). The hackathon workflow adds a TrueForge procurement
+agent that calls PriceMCP, computes an evidence brief in a sandbox, and requires
+human approval before writing a durable decision.
+
+> The default public demo is synthetic, non-purchasable data. It is designed to
+> test agent behavior without presenting scraped prices as live facts.
+
+## TrueForge agent demo
+
+```text
+human request
+    ↓
+TrueForge agent
+    ├── PriceMCP MCP: resolve + compare fresh trusted offers
+    ├── sandbox: calculate savings + write procurement-brief.md
+    └── approval pause: record_decision (durable append-only write)
+```
+
+Run the synthetic PriceMCP service:
+
+```bash
+npm install
+npm run demo:start
+```
+
+Run TrueForge in a second terminal:
+
+```bash
+npx @truefoundry/trueforge@0.1.4
+```
+
+Configure an MCP connector named `pricemcp-demo` pointing to
+`http://127.0.0.1:3200/mcp`, then import
+[`trueforge/agent.json`](./trueforge/agent.json). Full reproduction instructions,
+submission notes, and the exact prompt are in
+[`docs/SUBMISSION.md`](./docs/SUBMISSION.md). The timed recording plan is in
+[`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md).
+
+## Synthetic demo dataset
+
+The mockup runs separately from live data at `http://127.0.0.1:3200/`; its MCP
+endpoint is `http://127.0.0.1:3200/mcp`.
+
+It contains 31 benchmark products, six fictional merchants, controlled price
+history, and explicit official/trusted/member/marketplace/unavailable/stale
+scenarios. Every synthetic product and offer includes
+`dataset: "pricemcp-demo-v1"` and `synthetic: true`; all evidence URLs use
+`example.invalid`. The website displays a persistent demo warning. Synthetic
+records never enter `data/pricemcp.db`.
+
+```bash
+npm run demo:seed
+npm run demo:start
+```
+
+See [docs/demo-dataset.md](./docs/demo-dataset.md) for the catalog and scenario methodology.
+
+## Run
+
+```bash
+npm install
+npm run collect
+npm test
+npm start
+```
+
+The web/API server listens on `http://127.0.0.1:3199` by default. Runtime settings are documented in `.env.example`.
+
+## Interfaces
+
+- Website: `/`, `/products/{id}`, `/status`
+- Health JSON: `/internal/health`
+- REST: `/v1/search`, `/v1/products/{id}`, `/v1/products/{id}/offers`, `/v1/products/{id}/history`, `/v1/compare`, `/v1/best-price/{id}`
+- Reserved schemas: `/v1/fx`, `/v1/flights` explicitly return `not_implemented` and never data
+- HTTP MCP: `POST /mcp` (stateless Streamable HTTP)
+- stdio MCP: `npm run mcp`
+
+Example Codex/Claude-style stdio configuration:
+
+```json
+{
+  "mcpServers": {
+    "pricemcp": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "/absolute/path/to/pricemcp",
+      "env": { "PRICEMCP_DB": "/absolute/path/to/pricemcp/data/pricemcp.db" }
+    }
+  }
+}
+```
+
+Read tools: `search_products`, `get_price`, `compare_prices`,
+`find_best_offer`, `get_price_history`, and `list_decisions`.
+
+Guarded write tool: `record_decision`. It appends a receipt tied to a fresh
+offer and is annotated as destructive and non-idempotent for approval-aware MCP
+clients. It does not purchase or contact a merchant.
+
+## Architecture
+
+```text
+seller pages / embedded data
+        ↓
+source-specific collectors
+        ↓
+raw append-only observations + collection runs
+        ↓
+deterministic normalization and canonical matching
+        ↓
+current offer projection + freshness/trust ranking
+        ↓
+REST  |  MCP  |  server-rendered website
+```
+
+Collectors never write through the API. They return typed raw observations; the persistence layer appends evidence and updates the current-offer projection. SQLite uses foreign keys and WAL, and the schema intentionally avoids SQLite-only JSON queries so a PostgreSQL migration remains straightforward.
+
+Every observation stores source, method, URL, timestamp, merchant, currency, raw and normalized price, shipping basis, availability, condition, match confidence, status, and a bounded source payload. Freshness is calculated at read time: fresh `<1h`, recent `<6h`, aging `<24h`, stale `>=24h`. Stale offers are not ranked as current. REST accepts `max_age` in seconds (or `max_age_hours`); MCP lookup accepts `max_age_hours`.
+
+## Current catalog verification
+
+Catalog family names were checked against live U.S. Apple Store pages on **2026-08-29 (America/New_York)**. The 38 representative canonical configurations span:
+
+- iPhone 17 Pro / 17 Pro Max, iPhone Air, iPhone 17, iPhone 17e
+- iPad Pro M5, iPad Air M4, iPad A16, iPad mini A17 Pro
+- MacBook Air M5, MacBook Pro M5/M5 Pro, Mac mini M6/M5 Pro, iMac M4
+- Apple Watch Series 11, Ultra 3, and SE 3
+- AirPods Pro 3, AirPods 4 ANC, AirPods Max 2
+- Apple Vision Pro M5
+
+The requested MacBook Air M4 13-inch 16GB/256GB remains as an **inactive reference SKU** for deterministic resolution. Apple’s current new lineup has moved to M5 with 512GB base storage; PriceMCP therefore does not invent a current Apple offer or silently substitute M5 for the M4 query.
+
+## Sources and trust
+
+| Source | Method | Current result | Ranking treatment |
+|---|---|---|---|
+| Apple U.S. | Curated product-selection bootstrap across four manufacturer pages | Working | Official, verified, authorized, trust 1.00 |
+| Best Buy U.S. | Official Products API when `BESTBUY_API_KEY` exists; embedded Apollo SSR prototype fallback | Working | Only exact canonical SKUs and first-party seller classification `1P`; verified/authorized, trust 0.94 |
+| Amazon U.S. | Curated exact PDP HTML | Working | Only explicit `Sold by Amazon.com`; verified/authorized, trust 0.95 |
+
+Walmart presented a human-verification challenge; Costco, B&H, Adorama, and Abt returned access denial/challenge pages. PriceMCP does not bypass them. Target’s search shell did not provide stable public product data. Amazon search pages were too ambiguous, so the adapter uses a small curated ASIN set and rejects any buy box whose seller is not explicitly Amazon.com.
+
+Trust scores are manual MVP policy inputs, not review ratings. They reflect seller identity certainty, manufacturer authorization, source ownership, and fulfillment reliability. An offer is “trusted” only when the merchant is verified and authorized, score is at least 0.75, the seller is not unresolved marketplace inventory, and condition is new.
+
+## Scheduling
+
+When `PRICEMCP_SCHEDULER=true` (default): priority collectors run every 45 minutes; a full pass runs every four hours; catalog seeding/discovery metadata refreshes daily at 03:17. Set `PRICEMCP_COLLECT_ON_START=true` for an immediate refresh. Jobs, per-source SLAs, selector/schema drift, and failures are visible on `/status` and `/internal/health`; `PRICEMCP_ALERT_WEBHOOK_URL` enables failure delivery. `PRICEMCP_API_TOKEN` can add bearer authentication.
+
+## Tests
+
+`npm test` covers price/currency parsing, deterministic variants, conflicting SKUs, duplicate source SKUs, merchant normalization, stale data, unavailable items, trust ranking, best price, history calculations, all REST shapes, website evidence, real MCP client calls, collector HTTP failures, and malformed payloads.
+
+## Qodo Code Review Evidence
+
+This section is intentionally incomplete until the public repository exists and
+Qodo has reviewed a substantive pull request. The final submission will include:
+
+- representative merged PR: **pending**
+- Qodo finding and resulting fix: **pending**
+- follow-up Qodo review confirming the fix: **pending**
+
+No screenshot-only or unverified review claim will be substituted for the linked
+PR evidence.
+
+## Quote schema direction
+
+Future categories share this envelope without pretending that products, FX, and flights have identical conditions:
+
+```json
+{
+  "subject": {},
+  "quote": { "amount_minor": 0, "currency": "USD" },
+  "provider": {},
+  "conditions": [],
+  "observed_at": "ISO-8601",
+  "expires_at": "ISO-8601 or null"
+}
+```
