@@ -14,6 +14,7 @@
     "demo:start": "PRICEMCP_DB=./data/pricemcp-demo.db tsx src/seed-demo.ts && PRICEMCP_DB=./data/pricemcp-demo.db PRICEMCP_DATASET=pricemcp-demo-v1 PRICEMCP_SCHEDULER=false PORT=3200 tsx src/server.ts",
     "mcp": "tsx src/mcp-stdio.ts",
     "audit:workflows": "tsx src/workflow-audit.ts",
+    "verify:live": "node scripts/verify-live.mjs",
     "trueforge": "npx @truefoundry/trueforge@0.1.4",
     "test": "vitest run",
     "test:watch": "vitest",
