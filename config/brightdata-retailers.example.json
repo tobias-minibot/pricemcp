@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "provider": "bright-data-mcp",
-  "notes": "Copy to brightdata-retailers.json. Use exact PDP URLs only. Never commit credentials. accepted_sellers is a fail-closed seller-of-record allowlist.",
+  "notes": "Copy to brightdata-retailers.json. Use exact PDP URLs only. Never commit credentials. accepted_sellers is a fail-closed seller-of-record allowlist. allow_implicit_first_party is honored only for retailer domains approved in code.",
   "targets": [
     {
       "merchant_id": "walmart",
@@ -26,6 +26,7 @@
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "85978609",
       "accepted_sellers": ["Target"],
+      "allow_implicit_first_party": true,
       "html_patterns": {
         "title": "<title[^>]*>(Apple AirPods Pro 3[^<]+)",
         "price": "data-test=\\\"product-price\\\">\\$([0-9.]+)",
@@ -39,7 +40,8 @@
       "url": "https://www.bhphotovideo.com/c/product/1920300-REG/apple_mfhp4ll_a_airpods_pro_with_wireless.html",
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "APAIRPODSP3",
-      "accepted_sellers": ["B&H Photo"]
+      "accepted_sellers": ["B&H Photo"],
+      "allow_implicit_first_party": true
     },
     {
       "merchant_id": "adorama",
