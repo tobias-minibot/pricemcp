@@ -44,7 +44,7 @@ export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearch
   const dates=query.match(/\b20\d{2}-\d{2}-\d{2}\b/g)||[];
   if(/\b(flight|fly|flying|fare)\b/i.test(query)||(/\b(washington|dc|was|dca|iad)\b/i.test(query)&&/\b(berlin|ber)\b/i.test(query))){
     const place='washington(?:\\s+dc)?|dc|was|dca|iad|berlin|ber|[a-z]{3}';
-    const route=query.match(new RegExp(`(?:\\b(?:flight|fly|flying|fare)\\b\\s*)?(?:from\\s+)?\\b(${place})\\s+(?:to|→|-)\\s+(${place})\\b`,'i'));
+    const route=query.match(new RegExp(`(?:^|[^a-z])(?:\\b(?:flight|fly|flying|fare)\\b\\s*)?(?:from\\s+)?(${place})(?![a-z])\\s+(?:to|→|-)\\s+(${place})(?![a-z])`,'i'));
     const origin=route?.[1]?cityCode(route[1]):undefined,destination=route?.[2]?cityCode(route[2]):undefined;
     const invalidDate=dates.some(date=>!isIsoDate(date));
     const missing=[...(!origin||!destination?['origin/destination']:[]),...(dates.length<1?['departure_date']:[]),...(invalidDate?['valid flight date']:[]),...(dates.length>2?['unambiguous flight dates']:[])];
