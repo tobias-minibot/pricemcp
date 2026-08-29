@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
 
 const timeoutMs = 20_000;
 
@@ -44,7 +45,18 @@ assert(youtubeUrl, 'submission copy is missing the required YouTube submission U
 const video = await (await fetchOk(`https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`)).json();
 assert(video.type === 'video', 'YouTube URL does not resolve to a video');
 
-const release = await fetchOk('https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4', { method: 'HEAD' });
+const releaseApiUrl = 'https://api.github.com/repos/tobias-minibot/pricemcp/releases/tags/hackathon-demo-v1';
+const releaseMetadata = await (await fetchOk(releaseApiUrl)).json();
+const releaseAsset = releaseMetadata.assets?.find((asset) => asset.name === 'pricemcp-demo.mp4');
+assert(releaseAsset, 'GitHub release is missing pricemcp-demo.mp4');
+
+const localVideoUrl = new URL('../docs/assets/pricemcp-demo.mp4', import.meta.url);
+const [localVideo, localVideoStat] = await Promise.all([readFile(localVideoUrl), stat(localVideoUrl)]);
+const localVideoDigest = `sha256:${createHash('sha256').update(localVideo).digest('hex')}`;
+assert(releaseAsset.size === localVideoStat.size, `release video size ${releaseAsset.size} does not match local artifact ${localVideoStat.size}`);
+assert(releaseAsset.digest === localVideoDigest, `release video digest ${releaseAsset.digest} does not match local artifact ${localVideoDigest}`);
+
+const release = await fetchOk(releaseAsset.browser_download_url, { method: 'HEAD' });
 assert(release.url.includes('release-assets.githubusercontent.com'), 'GitHub release video did not resolve to a release asset');
 
 const developer = await (await fetchOk('https://pricemcp.vercel.app/developer')).text();
@@ -58,7 +70,7 @@ console.log(JSON.stringify({
   qodo_evidence: `PR #2 merged; ${qodoComments.length} public comments inspected`,
   youtube_url: youtubeUrl,
   youtube_video: video.title,
-  release_backup: 'reachable',
+  release_backup: 'reachable; size and sha256 match the local demo artifact',
   developer_console: 'reachable with live MCP and synthetic-flight disclosures',
   local_disclosures: 'synthetic dataset and approval boundary preserved',
   manual_gate: 'official submission form and receipt require human/external confirmation',
