@@ -16,8 +16,10 @@ export function createMcpServer(db:Db):McpServer{
   server.registerTool('get_price',{description:'Get cheapest, best trusted, and official current price with freshness evidence.',inputSchema:{product_id:z.string()}},async({product_id})=>{
     const product=getProduct(db,product_id);return response(product?{product:productView(product),...summaryView(bestPrice(db,product_id))}:{error:'not_found',product_id});
   });
-  server.registerTool('compare_prices',{description:'Compare normalized current offers for a canonical product.',inputSchema:{product_id:z.string(),trusted_only:z.boolean().default(false)}},async({product_id,trusted_only})=>{
-    let offers=getOffers(db,product_id);if(trusted_only)offers=offers.filter(o=>o.trusted);return response({product:productView(getProduct(db,product_id)),trusted_only,offers:offers.map(offerView)});
+  server.registerTool('compare_prices',{description:'Compare available normalized offers within a freshness threshold, optionally excluding untrusted or membership-conditional offers.',inputSchema:{product_id:z.string(),trusted_only:z.boolean().default(false),include_membership:z.boolean().default(false),max_age_hours:z.number().positive().default(6)}},async({product_id,trusted_only,include_membership,max_age_hours})=>{
+    let offers=getOffers(db,product_id,max_age_hours).filter(o=>o.available&&(include_membership||!o.membership_required));
+    if(trusted_only)offers=offers.filter(o=>o.trusted);
+    return response({product:productView(getProduct(db,product_id)),trusted_only,include_membership,max_age_hours,offers:offers.map(offerView)});
   });
   server.registerTool('find_best_offer',{description:'Resolve a query and rank current offers, respecting trust, membership conditions, and maximum age.',inputSchema:{query:z.string().min(1),trusted_only:z.boolean().default(true),include_membership:z.boolean().default(false),max_age_hours:z.number().positive().default(6)}},async({query,trusted_only,include_membership,max_age_hours})=>{
     const product=searchProducts(db,query,1)[0];if(!product)return response({query,error:'no_product_match'});

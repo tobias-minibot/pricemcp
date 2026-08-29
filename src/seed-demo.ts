@@ -5,7 +5,7 @@ import type { CollectorResult, RawObservation } from './types.js';
 const path=process.env.PRICEMCP_DB||'./data/pricemcp-demo.db';
 if(!path.includes('demo'))throw new Error(`Refusing to reset a non-demo database: ${path}`);
 const db=openDatabase(path);
-db.exec('DELETE FROM offers; DELETE FROM price_observations; DELETE FROM collection_runs; DELETE FROM aliases; DELETE FROM products; DELETE FROM merchants; DELETE FROM schema_meta;');
+db.exec('DELETE FROM decision_records; DELETE FROM offers; DELETE FROM price_observations; DELETE FROM collection_runs; DELETE FROM aliases; DELETE FROM products; DELETE FROM merchants; DELETE FROM schema_meta;');
 seed(db,demoCatalog,demoMerchants);
 
 const now=Date.now();
