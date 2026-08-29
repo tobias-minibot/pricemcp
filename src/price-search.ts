@@ -44,10 +44,10 @@ export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearch
   const dates=query.match(/\b20\d{2}-\d{2}-\d{2}\b/g)||[];
   if(/\b(flight|fly|flying|fare)\b/i.test(query)||(/\b(washington|dc|was|dca|iad)\b/i.test(query)&&/\b(berlin|ber)\b/i.test(query))){
     const place='washington(?:\\s+dc)?|dc|was|dca|iad|berlin|ber|[a-z]{3}';
-    const route=query.match(new RegExp(`(?:\\b(?:flight|fly|flying|fare)\\b\\s*)?(?:from\\s+)?(${place})\\s+(?:to|→|-)\\s+(${place})\\b`,'i'));
+    const route=query.match(new RegExp(`(?:\\b(?:flight|fly|flying|fare)\\b\\s*)?(?:from\\s+)?\\b(${place})\\s+(?:to|→|-)\\s+(${place})\\b`,'i'));
     const origin=route?.[1]?cityCode(route[1]):undefined,destination=route?.[2]?cityCode(route[2]):undefined;
     const invalidDate=dates.some(date=>!isIsoDate(date));
-    const missing=[...(!origin||!destination?['origin/destination']:[]),...(dates.length<1?['departure_date']:[]),...(invalidDate?['valid flight date']:[])];
+    const missing=[...(!origin||!destination?['origin/destination']:[]),...(dates.length<1?['departure_date']:[]),...(invalidDate?['valid flight date']:[]),...(dates.length>2?['unambiguous flight dates']:[])];
     if(missing.length)return{type:'incomplete',intent:'flight',query,missing};
     return {type:'flight',origin:origin!,destination:destination!,departure_date:dates[0]!,...(dates[1]?{return_date:dates[1]}:{}),cabin:'economy',adults:1};
   }
