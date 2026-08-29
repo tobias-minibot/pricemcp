@@ -54,11 +54,14 @@ one workflow.
 
 ### How did you use Qodo?
 
-Qodo reviewed the substantive approval-boundary pull request before it was
-merged. Its final review covered commit `671da48` and reported 0 bugs, 0 rule
-violations, and 0 requirement gaps, so there was no valid finding to fix or
-dismiss. The public PR preserves the completed review, earlier review state,
-final-code confirmation, CI result, and merge history as reproducible evidence.
+Qodo reviewed the final judge workflow in public PR #2 and found two valid
+High-severity audit bugs: MCP execution errors could look like successful empty
+results, and the generation check could accept the wrong Mac mini variant. We
+fixed both in commit `aa84309`; Qodo's follow-up marks both findings Resolved.
+That follow-up also raised a separate TypeScript inference claim that we dispute
+with direct evidence: `npm run check` and the public GitHub Actions verify job
+both pass on the exact reviewed commit. The PR preserves the findings, fixes,
+follow-up state, evidence-backed dispute, CI result, and merge history.
 
 ## Reproduce the demo
 
@@ -114,18 +117,21 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 33 passing
+- Automated tests: 34 passing
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
 - TrueForge MCP + sandbox + approval run: verified end to end; an intentionally
   denied first decision proved that invalid evidence cannot cross the durable
   write boundary, and the corrected run produced the approved decision receipt
 - Public repository: `https://github.com/tobias-minibot/pricemcp`
-- Representative merged PR: `https://github.com/tobias-minibot/pricemcp/pull/1`
-- Qodo review: `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464110797`
-  (0 bugs, 0 rule violations, 0 requirement gaps)
-- Qodo final-code confirmation through commit `671da48`:
-  `https://github.com/tobias-minibot/pricemcp/pull/1#issuecomment-5464137458`
+- Representative merged PR: `https://github.com/tobias-minibot/pricemcp/pull/2`
+- Qodo findings and resolution state:
+  `https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759`
+- Fix summary: `https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464190900`
+- Qodo final-code confirmation through commit `aa84309`:
+  `https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464200382`
+- Passing CI on that exact commit:
+  `https://github.com/tobias-minibot/pricemcp/actions/runs/33269061721/job/99144158012`
 - Demo video:
   `https://github.com/tobias-minibot/pricemcp/releases/download/hackathon-demo-v1/pricemcp-demo.mp4`
 - Required YouTube submission URL: `https://youtu.be/UFDzSPeujXQ`
