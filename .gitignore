@@ -6,6 +6,9 @@ data/raw/
 coverage/
 .DS_Store
 *.log
+docs/assets/*.aiff
+docs/assets/*.mp4
+docs/assets/pricemcp-home.png
 
 # OpenClaw operator workspace (not part of the public PriceMCP project)
 AGENTS.md
