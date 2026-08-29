@@ -240,5 +240,6 @@ export async function collectBrightDataRetailers(
       if(!sellerAllowed)errors.push(`${target.merchant_name} ${target.url}: Rejected seller of record: ${extracted.seller || 'unknown'}`);
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
   }
-  return { source, method, status: errors.length ? (observations.length ? 'partial' : 'failed') : 'success', observations, matched_products: new Set(observations.filter(item => item.matched_product_id).map(item => item.matched_product_id)).size, errors };
+  const accepted = observations.filter(item => item.collection_status === 'success' || item.collection_status === 'unavailable');
+  return { source, method, status: errors.length ? (accepted.length ? 'partial' : 'failed') : 'success', observations, matched_products: new Set(accepted.filter(item => item.matched_product_id).map(item => item.matched_product_id)).size, errors };
 }
