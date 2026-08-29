@@ -1,15 +1,20 @@
 # Three-minute demo script
 
-## 0:00–0:25 — The problem
+## 0:00–0:35 — The universal price-search story
 
-“A low headline price can be the wrong model, stale, unavailable, membership
-only, or from an unknown marketplace seller. PriceMCP gives an AI agent one
-normalized, evidence-backed price interface.”
+Open the mobile-width homepage. Search for `Mac mini M4 16GB 256GB`, then
+`Flight Washington to Berlin 2026-09-18 2026-09-25`.
 
-Show the PriceMCP synthetic-demo banner and the Mac mini M6 product page. Point
-out that the prices are explicitly synthetic and non-purchasable.
+“PriceMCP is one neutral price layer for people and AI agents. The same search
+surface resolves an exact product or a flight itinerary, normalizes comparable
+offers, and says why the best option ranks first. There are no ads or sponsored
+results.”
 
-## 0:25–0:50 — The architecture
+Point out the persistent synthetic-data banner and the flight fixture’s explicit
+“not bookable” condition. The demo proves the abstraction without representing
+mock fares as live facts.
+
+## 0:35–0:55 — The architecture
 
 Show the README architecture for a moment:
 
@@ -18,7 +23,7 @@ Show the README architecture for a moment:
 Mention that the demo dataset deliberately contains official, trusted,
 membership, untrusted marketplace, stale, and unavailable offers.
 
-## 0:50–1:25 — Real MCP work
+## 0:55–1:30 — Real MCP work
 
 In TrueForge, submit:
 
@@ -30,7 +35,11 @@ Expand the tool timeline. Show `find_best_offer` resolving the exact canonical
 variant and `compare_prices` returning normalized seller and condition evidence.
 Point out why the cheapest untrusted or conditional offer does not win.
 
-## 1:25–1:55 — Sandbox execution
+Briefly show that `search_price` accepts both `{ type: "product", query: ... }`
+and `{ type: "flight", origin: "WAS", destination: "BER", ... }`. The existing
+product tools remain available for the deeper procurement workflow.
+
+## 1:30–1:55 — Sandbox execution
 
 If the local model has stopped after comparison, send the prepared “Continue
 with sandbox stage 3” prompt from `docs/SUBMISSION.md`. Show TrueForge creating

@@ -9,6 +9,44 @@ human approval before writing a durable decision.
 > The default public demo is synthetic, non-purchasable data. It is designed to
 > test agent behavior without presenting scraped prices as live facts.
 
+## One neutral search surface
+
+The hackathon interface turns the infrastructure into a simple consumer and
+agent experience: **ask what something costs; get the best trustworthy options.**
+The mobile-first homepage accepts either an exact product request such as
+`Mac mini M4 16GB 256GB` or the narrow flight demo
+`Flight Washington to Berlin 2026-09-18 2026-09-25`. Results explain
+the winner using price, provider trust, availability, freshness, and product or
+itinerary match—never advertising or affiliate economics.
+
+Products and flights share the same compact quote envelope while retaining their
+category-specific subject fields:
+
+```json
+{
+  "status": "ok",
+  "subject": { "type": "flight", "origin": "WAS", "destination": "BER" },
+  "best_offer": {
+    "provider": { "name": "United", "trusted": true },
+    "quote": { "total_minor": 61200, "currency": "USD" },
+    "conditions": ["1 stop", "economy", "demo fixture — not bookable"]
+  },
+  "offers": [],
+  "ranking": { "policy": "lowest comparable available total" },
+  "synthetic": true
+}
+```
+
+The flight demo is intentionally narrow. With Amadeus credentials, PriceMCP uses
+the official Flight Offers Search API. Amadeus test-environment results are marked
+synthetic because the test dataset is restricted. In the synthetic demo service,
+the WAS→BER fixture is visibly labeled demo-only and not bookable. In live mode
+without credentials—or when the provider fails—PriceMCP returns no fare rather
+than inventing one.
+
+Incomplete itineraries and ambiguous product queries return candidates or
+missing-field guidance, never an arbitrary variant, route, or travel date.
+
 ![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
 
 ## TrueForge agent demo
@@ -93,8 +131,9 @@ The web/API server listens on `http://127.0.0.1:3199` by default. Runtime settin
 
 - Website: `/`, `/products/{id}`, `/status`
 - Health JSON: `/internal/health`
-- REST: `/v1/search`, `/v1/products/{id}`, `/v1/products/{id}/offers`, `/v1/products/{id}/history`, `/v1/compare`, `/v1/best-price/{id}`
-- Reserved schemas: `/v1/fx`, `/v1/flights` explicitly return `not_implemented` and never data
+- REST: `POST /v1/search-price`, `/v1/search`, `/v1/products/{id}`, `/v1/products/{id}/offers`, `/v1/products/{id}/history`, `/v1/compare`, `/v1/best-price/{id}`
+- Flights: `/v1/flights` accepts `origin`, `destination`, `departure_date`, and optional `return_date`; without a complete query it retains the schema-complete `not_implemented` response
+- Reserved schema: `/v1/fx` explicitly returns `not_implemented` and never data
 - HTTP MCP: `POST /mcp` (stateless Streamable HTTP)
 - stdio MCP: `npm run mcp`
 
@@ -113,7 +152,23 @@ Example Codex/Claude-style stdio configuration:
 }
 ```
 
-Read tools: `search_products`, `get_price`, `compare_prices`,
+Universal read tool: `search_price` with either a product or flight subject.
+
+```json
+{ "type": "product", "query": "Mac mini M4 16GB 256GB" }
+```
+
+```json
+{
+  "type": "flight",
+  "origin": "WAS",
+  "destination": "BER",
+  "departure_date": "2026-09-18",
+  "return_date": "2026-09-25"
+}
+```
+
+Compatibility read tools: `search_products`, `get_price`, `compare_prices`,
 `find_best_offer`, `get_price_history`, and `list_decisions`.
 
 Guarded write tool: `record_decision`. It appends a receipt tied to a fresh
