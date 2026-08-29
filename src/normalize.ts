@@ -39,8 +39,8 @@ export function extractAttributes(title: string): Record<string, string | number
     else if (key === 'display_inches') out[key] = Number(match[1]);
     else out[key] = match[1]!.toUpperCase().replace(/\s+/g, ' ');
   }
-  const airpodsGeneration=title.match(/\bairpods(?:\s+(?:pro|max))?\s*(\d+)\b/i);
-  if(airpodsGeneration)out.generation=Number(airpodsGeneration[1]);
+  const airpodsGeneration=title.match(/\bairpods(?:\s+(?:pro|max))?(?:\s*(\d+)(?:st|nd|rd|th)?\b|.{0,80}?\b(\d+)(?:st|nd|rd|th)?\s+generation\b)/i);
+  if(airpodsGeneration)out.generation=Number(airpodsGeneration[1]??airpodsGeneration[2]);
   if(/\b(?:active noise cancellation|anc)\b/i.test(title))out.anc=true;
   const caseSize=title.match(/\b(4[0269])\s*mm\b/i);
   if(caseSize)out.case_mm=Number(caseSize[1]);
@@ -57,17 +57,19 @@ export function matchProduct(title: string, products: CatalogProduct[]): { produ
     if (!familyTokens.every(t => text.includes(t))) continue;
     let score = 0.45;
     if(text.includes(normalizeText(product.family)))score+=0.12;
-    let conflicts = 0;
+    let conflicts = 0, matchedExpected = 0;
     const expected = product.attributes;
     for (const key of ['chip', 'memory_gb', 'storage_gb', 'display_inches', 'generation', 'anc', 'case_mm']) {
       if (attrs[key] === undefined || expected[key] === undefined) continue;
       const same = String(attrs[key]).toUpperCase() === String(expected[key]).toUpperCase();
       score += same ? 0.13 : 0;
+      matchedExpected += same ? 1 : 0;
       conflicts += same ? 0 : 1;
     }
+    if(matchedExpected&&conflicts===0)score+=0.12;
     if (conflicts) score -= conflicts * 0.35;
     if (product.aliases.some(a => text.includes(normalizeText(a)))) score += 0.08;
     if (score > bestScore) { best = product; bestScore = score; }
   }
-  return bestScore >= 0.7 ? { product: best, confidence: Math.min(0.99, bestScore) } : { product: null, confidence: Math.max(0, bestScore) };
+  return bestScore >= 0.7 - 1e-9 ? { product: best, confidence: Math.min(0.99, bestScore) } : { product: null, confidence: Math.max(0, bestScore) };
 }

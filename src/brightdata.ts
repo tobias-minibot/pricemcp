@@ -1,5 +1,7 @@
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'node:fs';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { catalog, merchants } from './catalog.js';
 import { matchProduct, parsePrice } from './normalize.js';
 import type { CollectorResult, RawObservation } from './types.js';
@@ -11,6 +13,10 @@ export interface BrightDataTarget {
   expected_product_id: string;
   source_product_id: string;
   accepted_sellers: string[];
+  accepted_hosts?: string[];
+  seller_markers?: string[];
+  html_patterns?: ExtractionPatterns;
+  markdown_patterns?: ExtractionPatterns;
   selectors?: {
     title?: string[];
     price?: string[];
@@ -27,8 +33,46 @@ type ExtractedProduct = {
   available: boolean;
   seller: string;
   source_product_id: string;
-  extraction_path: 'json-ld' | 'saved-selectors';
+  extraction_path: 'json-ld' | 'saved-selectors' | 'saved-html-rules' | 'saved-markdown-rules';
   selector_repairs: string[];
+};
+
+type ExtractionPatterns = {
+  title: string;
+  price: string;
+  availability: string;
+  seller?: string;
+  sku: string;
+};
+
+const MARKDOWN_PREFIX = 'PRICEMCP_BRIGHTDATA_MARKDOWN\n';
+
+const capturePattern = (document: string, pattern: string): string =>
+  document.match(new RegExp(pattern, 'im'))?.[1]?.replace(/\s+/g, ' ').trim() ?? '';
+
+const extractWithPatterns = (
+  document: string,
+  patterns: ExtractionPatterns,
+  extractionPath: ExtractedProduct['extraction_path']
+): ExtractedProduct => {
+  const title = capturePattern(document, patterns.title);
+  const rawPrice = capturePattern(document, patterns.price);
+  const availability = capturePattern(document, patterns.availability);
+  const seller = patterns.seller ? capturePattern(document, patterns.seller) : '';
+  const sku = capturePattern(document, patterns.sku);
+  if (!title || !rawPrice || !sku) {
+    throw new Error(`Schema drift: ${extractionPath} rules did not produce title, price, and SKU`);
+  }
+  return {
+    title,
+    raw_price: rawPrice.startsWith('$') ? rawPrice : `$${rawPrice}`,
+    currency: 'USD',
+    available: hasPositiveAvailability(availability),
+    seller,
+    source_product_id: sku,
+    extraction_path: extractionPath,
+    selector_repairs: Object.values(patterns)
+  };
 };
 
 const textAtFirstMatch = ($: cheerio.CheerioAPI, selectors: string[] = []): { value: string; selector?: string } => {
@@ -57,9 +101,19 @@ const jsonLdProducts = ($: cheerio.CheerioAPI): any[] => {
   return products;
 };
 
-const hasPositiveAvailability = (value: string): boolean => /(?:^|\W)(?:in\s*stock|limited\s*availability|available\s*(?:now|for|today)?)(?:\W|$)/i.test(value);
+const hasPositiveAvailability = (value: string): boolean => /(?:^|\W)(?:in\s*stock|limited\s*availability|available\s*(?:now|for|today)?|ready\s+within)(?:\W|$)/i.test(value);
 
 export function extractBrightDataProduct(html: string, target: BrightDataTarget): ExtractedProduct {
+  if (html.startsWith(MARKDOWN_PREFIX)) {
+    if (!target.markdown_patterns) {
+      throw new Error('Schema drift: HTML unavailable and no saved markdown repair rules configured');
+    }
+    return extractWithPatterns(
+      html.slice(MARKDOWN_PREFIX.length),
+      target.markdown_patterns,
+      'saved-markdown-rules'
+    );
+  }
   const $ = cheerio.load(html);
   for (const product of jsonLdProducts($)) {
     const offers = Array.isArray(product.offers) ? product.offers : [product.offers].filter(Boolean);
@@ -78,6 +132,10 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
     }
   }
 
+  if (target.html_patterns) {
+    return extractWithPatterns(html, target.html_patterns, 'saved-html-rules');
+  }
+
   const selectors = target.selectors ?? {};
   const title = textAtFirstMatch($, selectors.title);
   const price = textAtFirstMatch($, selectors.price);
@@ -93,7 +151,33 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
   };
 }
 
-export async function brightDataRequest(url: string, token: string, zone: string): Promise<string> {
+async function brightDataMcpRequest(url: string, mcpUrl: string): Promise<string> {
+  const client = new Client({ name: 'pricemcp-terminal-collector', version: '0.1.0' });
+  try {
+    await client.connect(new SSEClientTransport(new URL(mcpUrl)));
+    const response = await client.callTool({ name: 'scrape_as_html', arguments: { url } });
+    const text = response.content
+      .filter(item => item.type === 'text')
+      .map(item => item.text)
+      .join('\n');
+    const start = text.indexOf('<'), end = text.lastIndexOf('>');
+    if (!response.isError && start >= 0 && end > start) return text.slice(start, end + 1);
+
+    const fallback = await client.callTool({ name: 'scrape_as_markdown', arguments: { url } });
+    if (fallback.isError) throw new Error('Bright Data MCP HTML and markdown extraction failed');
+    const markdown = fallback.content
+      .filter(item => item.type === 'text')
+      .map(item => item.text)
+      .join('\n');
+    if (!markdown.trim()) throw new Error('Bright Data MCP returned no HTML or markdown document');
+    return `${MARKDOWN_PREFIX}Source URL: ${url}\n${markdown}`;
+  } finally {
+    await client.close().catch(() => {});
+  }
+}
+
+export async function brightDataRequest(url: string, token: string, zone: string, mcpUrl = process.env.BRIGHTDATA_MCP_URL || ''): Promise<string> {
+  if(mcpUrl)return brightDataMcpRequest(url,mcpUrl);
   const response = await fetch('https://api.brightdata.com/request', {
     method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({ zone, url, format: 'raw' }), signal: AbortSignal.timeout(30_000)
@@ -113,17 +197,30 @@ export function loadBrightDataTargets(path = process.env.BRIGHTDATA_TARGETS_FILE
 export async function collectBrightDataRetailers(
   targets: BrightDataTarget[] = loadBrightDataTargets(),
   token = process.env.BRIGHTDATA_API_TOKEN || '',
-  zone = process.env.BRIGHTDATA_WEB_UNLOCKER_ZONE || ''
+  zone = process.env.BRIGHTDATA_WEB_UNLOCKER_ZONE || '',
+  mcpUrl = process.env.BRIGHTDATA_MCP_URL || ''
 ): Promise<CollectorResult> {
-  const source = 'brightdata-retailers-us', method = 'brightdata_web_unlocker_saved_rules';
+  const source = 'brightdata-retailers-us';
+  const method = mcpUrl ? 'brightdata_mcp_saved_rules' : 'brightdata_web_unlocker_saved_rules';
   const observations: RawObservation[] = [], errors: string[] = [];
-  if (!token || !zone) return { source, method, status: 'failed', observations, matched_products: 0, errors: ['BRIGHTDATA_API_TOKEN and BRIGHTDATA_WEB_UNLOCKER_ZONE are required'] };
+  if (!mcpUrl && (!token || !zone)) return { source, method, status: 'failed', observations, matched_products: 0, errors: ['BRIGHTDATA_MCP_URL or both BRIGHTDATA_API_TOKEN and BRIGHTDATA_WEB_UNLOCKER_ZONE are required'] };
   for (const target of targets) {
     try {
       if (!catalog.some(product => product.id === target.expected_product_id)) throw new Error(`Unknown expected product ${target.expected_product_id}`);
       if (!merchants.some(merchant => merchant.id === target.merchant_id)) throw new Error(`Unknown merchant ${target.merchant_id}`);
       if (!Array.isArray(target.accepted_sellers) || !target.accepted_sellers.length) throw new Error('accepted_sellers must contain at least one seller of record');
-      const extracted = extractBrightDataProduct(await brightDataRequest(target.url, token, zone), target);
+      const html = await brightDataRequest(target.url, token, zone, mcpUrl);
+      const extracted = extractBrightDataProduct(html, target);
+      let sellerEvidence = 'structured';
+      if (!extracted.seller) {
+        const host = new URL(target.url).hostname.toLowerCase();
+        const hostAllowed = (target.accepted_hosts ?? []).some(value => value.toLowerCase() === host);
+        const markerFound = (target.seller_markers ?? []).some(marker => html.toLowerCase().includes(marker.toLowerCase()));
+        if (hostAllowed && markerFound) {
+          extracted.seller = target.merchant_name;
+          sellerEvidence = 'first-party-host-marker';
+        }
+      }
       const sellerAllowed = target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
       if (!sellerAllowed) throw new Error(`Rejected seller of record: ${extracted.seller || 'unknown'}`);
       if (!extracted.source_product_id || extracted.source_product_id.toLowerCase() !== target.source_product_id.trim().toLowerCase()) {
@@ -136,7 +233,7 @@ export async function collectBrightDataRetailers(
         currency: extracted.currency, price_minor: parsePrice(extracted.raw_price, extracted.currency), shipping_minor: null,
         available: extracted.available, condition: 'new', matched_product_id: exact ? target.expected_product_id : null,
         match_confidence: exact ? matched.confidence : 0, collection_status: exact ? (extracted.available ? 'success' : 'unavailable') : 'unmatched',
-        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller, extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
+        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller, seller_evidence: sellerEvidence, extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
       });
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
   }
