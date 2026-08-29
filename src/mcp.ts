@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { Db } from './db.js';
 import { bestPrice, getOffers, getProduct, history, listDecisions, recordDecision, searchProducts } from './db.js';
+import { isIsoDate, searchPrice } from './price-search.js';
 
 const response=(data:unknown)=>({content:[{type:'text' as const,text:JSON.stringify(data)}],structuredContent:data as Record<string,unknown>});
 const productView=(p:any)=>p?({product_id:p.id,brand:p.brand,category:p.category,family:p.family,name:p.name,model:p.model??null,attributes:p.attributes,active:p.active,official_url:p.official_url,dataset:p.dataset??'live',synthetic:!!p.synthetic,...(p.score===undefined?{}:{match_score:p.score})}):null;
@@ -12,6 +13,12 @@ const historyView=(data:any)=>({product_id:data.product_id,days:data.days,curren
 
 export function createMcpServer(db:Db):McpServer{
   const server=new McpServer({name:'PriceMCP',version:'0.1.0'});
+  server.registerTool('search_price',{description:'Universal PriceMCP search across supported price subjects. Products and flights share a normalized evidence envelope while retaining category-specific subject fields.',inputSchema:{type:z.enum(['product','flight']),query:z.string().optional(),origin:z.string().optional(),destination:z.string().optional(),departure_date:z.string().optional(),return_date:z.string().optional(),cabin:z.enum(['economy','premium_economy','business','first']).optional(),adults:z.number().int().min(1).max(9).optional()}},async(input)=>{
+    if(input.type==='product'){if(!input.query?.trim())return response({status:'invalid_request',error:'query is required for product searches'});return response(await searchPrice(db,{type:'product',query:input.query.trim()}));}
+    if(!input.origin||!input.destination||!input.departure_date)return response({status:'invalid_request',error:'origin, destination, and departure_date are required for flight searches'});
+    if(!isIsoDate(input.departure_date)||input.return_date&&!isIsoDate(input.return_date))return response({status:'invalid_request',error:'flight dates must be valid YYYY-MM-DD values'});
+    return response(await searchPrice(db,{type:'flight',origin:input.origin,destination:input.destination,departure_date:input.departure_date,return_date:input.return_date,cabin:input.cabin,adults:input.adults},{allowDemoFlights:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'}));
+  });
   server.registerTool('search_products',{description:'Resolve a product query to canonical, category-generic PriceMCP product IDs.',inputSchema:{query:z.string().min(1)}},async({query})=>response({query,results:searchProducts(db,query).map(productView)}));
   server.registerTool('get_price',{description:'Get cheapest, best trusted, and official current price with freshness evidence.',inputSchema:{product_id:z.string()}},async({product_id})=>{
     const product=getProduct(db,product_id);return response(product?{product:productView(product),...summaryView(bestPrice(db,product_id))}:{error:'not_found',product_id});
