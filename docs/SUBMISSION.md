@@ -121,7 +121,7 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 45 passing
+- Automated tests: 46 passing
 - Bright Data MCP: four exact-SKU AirPods Pro 3 offers collected successfully
   from Walmart, Target, B&H, and Adorama; no credentials stored in Git
 - Synthetic website, REST, and MCP: passing locally
