@@ -185,9 +185,14 @@ in the [public Qodo review thread](https://github.com/tobias-minibot/pricemcp/pu
 We changed `src/workflow-audit.ts` to reject `isError` tool responses and to
 validate invariant canonical attributes for both judge scenarios. Commit
 [`aa84309`](https://github.com/tobias-minibot/pricemcp/commit/aa8430945e8c4ce256bbbe29b5cffabe63569db6)
-contains the fixes. Qodo's follow-up review marked both findings **Resolved**
-and reported **0 remaining bugs** before the PR was merged; the same PR also
-shows the successful final CI check. [PR #1](https://github.com/tobias-minibot/pricemcp/pull/1)
+contains the fixes, and Qodo's follow-up review marks both findings
+**Resolved**.
+
+That follow-up also introduced a separate High-severity claim that TypeScript
+would reject the audit code. We dispute that finding rather than presenting it
+as dismissed: `npm run check` passes on the exact reviewed commit, as does the
+[public GitHub Actions verify job](https://github.com/tobias-minibot/pricemcp/actions/runs/33269061721/job/99144158012).
+The full exchange remains visible in the PR. [PR #1](https://github.com/tobias-minibot/pricemcp/pull/1)
 provides an earlier substantive Qodo-reviewed safety change and final-commit
 confirmation. Links, PR history, and bot-authored comments are the source of
 truth; screenshots are supplementary only.

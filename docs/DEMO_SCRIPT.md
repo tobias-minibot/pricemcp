@@ -54,8 +54,10 @@ not place an order or contact a merchant.
 
 Show the passing test command, public repository, and README’s
 `Qodo Code Review Evidence` section. Open the linked PR and briefly show Qodo’s
-review of the substantive safety change, its zero-issue result, and the
-latest-commit confirmation.
+two valid audit findings, the code changes that resolved them, and the passing
+CI check on the reviewed commit. If the remaining TypeScript finding is visible,
+state plainly that it is disputed—not dismissed—and point to the passing check
+as the evidence.
 
 Close with: “PriceMCP turns price search into comparable evidence, then lets the
 human retain control at the action boundary.”
