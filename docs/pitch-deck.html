@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PriceMCP — YC-style pitch deck</title>
+  <style>
+    :root{--ink:#0d111b;--muted:#5d6678;--paper:#f5f7fa;--white:#fff;--blue:#3156d8;--sky:#e9efff;--mint:#dff8ef;--gold:#fff0bf;--line:#dce2eb}
+    *{box-sizing:border-box}html,body{margin:0;background:#111827;color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .slide{position:relative;overflow:hidden;background:var(--paper);padding:72px 88px;grid-template-rows:auto 1fr auto;gap:28px}
+    .slide::after{content:attr(data-n);position:absolute;right:46px;bottom:28px;color:#8b94a6;font-size:16px;font-weight:700}
+    .brand{display:flex;align-items:center;gap:14px;font-weight:850;font-size:25px;letter-spacing:-1px}.brand em{font-style:normal;color:var(--blue)}
+    .mark{width:32px;height:32px;border-radius:9px;background:var(--ink);position:relative}.mark::before,.mark::after{content:"";position:absolute;background:var(--blue);border-radius:2px}.mark::before{width:15px;height:5px;left:8px;top:8px;box-shadow:0 11px 0 #65d6b4}.mark::after{width:5px;height:16px;left:8px;top:8px}
+    h1,h2,h3,p{margin:0}h1{font-size:82px;line-height:.95;letter-spacing:-5px;max-width:1250px}h2{font-size:59px;line-height:1;letter-spacing:-3.4px;max-width:1300px}h3{font-size:28px;letter-spacing:-1.2px}.sub{font-size:30px;line-height:1.25;color:var(--muted);max-width:1080px}.eyebrow{text-transform:uppercase;letter-spacing:2.4px;color:var(--blue);font-weight:850;font-size:16px}.foot{display:flex;justify-content:space-between;align-items:center;color:#697386;font-size:17px}.pill{display:inline-block;padding:9px 13px;border-radius:999px;background:var(--sky);color:#2445bb;font-size:15px;font-weight:800;letter-spacing:.4px}
+    .hero{display:flex;flex-direction:column;justify-content:center;gap:30px}.hero h1 span{color:var(--blue)}.tagline{font-size:34px;line-height:1.22;max-width:1050px;color:#313b4f}.url{font-size:21px;font-weight:750;color:var(--blue)}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:54px;align-items:center}.stack{display:flex;flex-direction:column;gap:20px}.card{background:var(--white);border:1px solid var(--line);border-radius:24px;padding:30px;box-shadow:0 12px 32px rgba(29,40,68,.06)}.card p{font-size:22px;line-height:1.38;color:var(--muted);margin-top:10px}.dark{background:var(--ink);color:white;border-color:var(--ink)}.dark p{color:#cdd6e7}.quote{font-size:42px;line-height:1.12;letter-spacing:-2px;font-weight:760}.cross{color:#d23d56;text-decoration:line-through;text-decoration-thickness:4px}.check{color:#0a8f66}
+    .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.problem-grid .card{min-height:250px}.icon{font-size:42px;margin-bottom:23px}.big{font-size:34px!important;line-height:1.15!important;color:var(--ink)!important;font-weight:800;letter-spacing:-1.3px}
+    .evidence{display:grid;grid-template-columns:.85fr 1.15fr;gap:42px;align-items:stretch}.shot{border-radius:24px;overflow:hidden;border:1px solid var(--line);background:#dfe5ee;box-shadow:0 22px 54px rgba(13,17,27,.15)}.shot img{width:100%;height:100%;object-fit:cover}.flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.node{padding:20px 22px;border-radius:17px;background:var(--white);border:1px solid var(--line);font-size:20px;font-weight:800;min-width:175px}.arrow{font-size:28px;color:var(--blue);font-weight:900}.mini{font-size:15px;color:var(--muted);font-weight:650;margin-top:6px;line-height:1.3}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.metric{padding:31px 27px;border-radius:22px;background:var(--white);border:1px solid var(--line)}.metric b{display:block;font-size:53px;letter-spacing:-3px}.metric span{display:block;margin-top:8px;color:var(--muted);font-size:19px;line-height:1.25}.truth{background:var(--gold);border-radius:18px;padding:17px 22px;font-size:18px;line-height:1.35}
+    .architecture{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch}.architecture .node{min-width:0;padding:25px 20px}.architecture .node:nth-child(1){background:var(--sky)}.architecture .node:nth-child(3){background:var(--gold)}.architecture .node:nth-child(5){background:var(--mint)}.rails{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.rail{padding:27px;border:1px solid var(--line);background:white;border-radius:22px}.rail strong{display:block;font-size:26px;margin-bottom:10px}.rail p{font-size:19px;line-height:1.35;color:var(--muted)}
+    .wedge{display:grid;grid-template-columns:1.05fr 1.95fr;gap:30px}.wedge-now{background:var(--ink);color:white;border-radius:28px;padding:42px}.wedge-now b{font-size:46px;display:block;margin-top:16px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.step{background:white;border-radius:24px;padding:29px;border:1px solid var(--line)}.step .n{font-size:15px;font-weight:850;color:var(--blue)}.step b{font-size:27px;display:block;margin:12px 0}.step p{color:var(--muted);font-size:18px;line-height:1.34}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:28px}.compare .card{min-height:335px}.list{display:flex;flex-direction:column;gap:14px;margin-top:22px}.row{display:flex;gap:12px;font-size:20px;line-height:1.3}.row b{min-width:26px}.price-box{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.price-box .card{min-height:215px}.price-box strong{font-size:26px}.price-box p{font-size:19px}.roadmap{display:flex;gap:18px}.roadmap .card{flex:1}.roadmap .when{font-size:14px;text-transform:uppercase;letter-spacing:1.8px;color:var(--blue);font-weight:850}.roadmap h3{margin:11px 0}.ask{display:grid;grid-template-columns:1.2fr .8fr;gap:42px}.ask-list{display:flex;flex-direction:column;gap:17px}.ask-item{background:white;border:1px solid var(--line);border-radius:19px;padding:21px 25px;font-size:23px;font-weight:750}.closing{background:var(--ink);color:white}.closing::after{color:#73809a}.closing .sub{color:#bec9dc}.closing .brand{color:white}.closing .ask-item{background:#151c2c;border-color:#273149;color:white}.closing .url{color:#84a7ff}
+    .proof{display:flex;gap:15px;flex-wrap:wrap}.proof .pill{background:#edf1f8;color:#3b465c}
+    @media screen{.slide{display:none;width:1600px;height:900px;margin:30px auto}.slide.active{display:grid}}
+    @media print{@page{size:16in 9in;margin:0}html,body{background:white}.slide{display:grid;width:16in;height:9in;page-break-after:always;margin:0}.slide:last-child{page-break-after:auto}}
+  </style>
+</head>
+<body>
+  <section class="slide active" data-n="01">
+    <div class="brand"><span class="mark"></span>Price<em>MCP</em></div>
+    <div class="hero">
+      <div class="eyebrow">The neutral price layer for AI</div>
+      <h1>Ask what it costs.<br><span>Get evidence.</span></h1>
+      <p class="tagline">One MCP-first interface for agents to resolve, normalize, compare, and cite prices across products, flights, FX, and beyond.</p>
+      <div class="proof"><span class="pill">LIVE MVP</span><span class="pill">MCP-FIRST</span><span class="pill">NO SPONSORED RANKING</span></div>
+    </div>
+    <div class="foot"><span>PriceMCP · August 2026</span><span class="url">pricemcp.vercel.app</span></div>
+  </section>
+
+  <section class="slide" data-n="02">
+    <div><div class="eyebrow">Problem</div><h2>AI can find a price.<br>It cannot reliably trust it.</h2></div>
+    <div class="problem-grid">
+      <div class="card"><div class="icon">⌁</div><p class="big">The same product has different names, variants, sellers, and conditions.</p></div>
+      <div class="card"><div class="icon">◷</div><p class="big">Prices go stale. Shipping, membership, availability, and tax are often hidden.</p></div>
+      <div class="card"><div class="icon">◉</div><p class="big">Search rankings optimize ads and affiliates—not agent trust.</p></div>
+    </div>
+    <div class="foot"><span>Agents need comparable evidence, not a plausible headline price.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="03">
+    <div><div class="eyebrow">Insight</div><h2>A price is not a number.<br>It is an evidence object.</h2></div>
+    <div class="split">
+      <div class="card dark"><div class="quote"><span class="cross">“$199”</span></div><p>A number without identity, seller, source, timestamp, conditions, or confidence cannot safely drive an agent decision.</p></div>
+      <div class="card"><div class="quote check">Canonical item + normalized quote + provenance</div><p>PriceMCP keeps product or itinerary identity, provider trust, total, freshness, availability, conditions, match confidence, and source URL together.</p></div>
+    </div>
+    <div class="foot"><span>This becomes a reusable contract for every AI surface.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="04">
+    <div><div class="eyebrow">Product</div><h2>One query. One canonical entity.<br>Many source-backed offers.</h2></div>
+    <div class="evidence">
+      <div class="stack">
+        <div class="flow"><div class="node">AI asks<div class="mini">“AirPods Pro 3”</div></div><div class="arrow">→</div><div class="node">PriceMCP<div class="mini">search_price over MCP</div></div></div>
+        <div class="flow"><div class="node">Resolve<div class="mini">apple-airpods-pro-3</div></div><div class="arrow">→</div><div class="node">Fan in<div class="mini">5 trusted retailers</div></div></div>
+        <div class="flow"><div class="node">Normalize<div class="mini">comparable quote envelope</div></div><div class="arrow">→</div><div class="node">Return<div class="mini">ranked evidence + URLs</div></div></div>
+      </div>
+      <div class="shot"><img src="assets/pricemcp-developer.jpg" alt="Live PriceMCP infrastructure console"></div>
+    </div>
+    <div class="foot"><span>Same surface: website · REST · Model Context Protocol</span><span class="url">/developer</span></div>
+  </section>
+
+  <section class="slide" data-n="05">
+    <div><div class="eyebrow">Working MVP</div><h2>Infrastructure depth is live—not a roadmap slide.</h2></div>
+    <div class="stack">
+      <div class="metrics">
+        <div class="metric"><b>5</b><span>retailer observations in the live AirPods query</span></div>
+        <div class="metric"><b>7</b><span>read-only MCP tools with JSON schemas</span></div>
+        <div class="metric"><b>38</b><span>canonical products in the deployed snapshot</span></div>
+        <div class="metric"><b>66</b><span>automated tests passing</span></div>
+      </div>
+      <div class="truth"><strong>Truth boundary:</strong> product evidence is a timestamped live snapshot. The flight contract is a clearly labeled synthetic, non-bookable fixture. PriceMCP fails closed rather than inventing a fare.</div>
+      <div class="proof"><span class="pill">OFFICIAL MCP SDK</span><span class="pill">OFFER-LEVEL PROVENANCE</span><span class="pill">QODO-REVIEWED</span><span class="pill">HUMAN-GATED WRITES</span></div>
+    </div>
+    <div class="foot"><span>Verified on public production and GitHub Actions.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="06">
+    <div><div class="eyebrow">Architecture</div><h2>Neutral data infrastructure between agents and commerce.</h2></div>
+    <div class="stack">
+      <div class="architecture">
+        <div class="node">Consumer / AI<div class="mini">natural-language price request</div></div>
+        <div class="node">MCP / API<div class="mini">one discoverable tool contract</div></div>
+        <div class="node">Entity resolution<div class="mini">exact product or itinerary</div></div>
+        <div class="node">Normalization<div class="mini">trust · freshness · conditions</div></div>
+        <div class="node">Evidence response<div class="mini">ranked quotes + provenance</div></div>
+      </div>
+      <div class="rails">
+        <div class="rail"><strong>Source adapters</strong><p>Retailer pages, commerce APIs, flight APIs, and future market-data feeds.</p></div>
+        <div class="rail"><strong>Category schemas</strong><p>Products and flights retain domain fields inside one quote envelope; FX comes next.</p></div>
+        <div class="rail"><strong>Trust policy</strong><p>Identity, availability, freshness, seller, and conditions gate ranking before price.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>Moat compounds in normalization rules, entity graphs, provenance, and coverage.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="07">
+    <div><div class="eyebrow">Go-to-market wedge</div><h2>Start where price ambiguity hurts.<br>Expand through one interface.</h2></div>
+    <div class="wedge">
+      <div class="wedge-now"><span class="eyebrow" style="color:#84a7ff">NOW</span><b>Apple products</b><p style="font-size:22px;line-height:1.4;color:#c7d1e4;margin-top:17px">Finite catalog, exact variants, high purchase intent, recognizable merchants, and a demo judges understand instantly.</p></div>
+      <div class="steps">
+        <div class="step"><span class="n">EXPAND 01</span><b>US retail</b><p>Onboard the 15–20 retailers that matter, not a long tail of weak sources.</p></div>
+        <div class="step"><span class="n">EXPAND 02</span><b>Travel</b><p>Flights prove the same normalized quote contract across a different domain.</p></div>
+        <div class="step"><span class="n">EXPAND 03</span><b>FX + markets</b><p>Add high-frequency price domains where source, timestamp, and spread are essential.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>Distribution: agent frameworks, MCP directories, AI search, and enterprise copilots.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="08">
+    <div><div class="eyebrow">Why now / competition</div><h2>Agents need a price layer built for them—not adapted from ads.</h2></div>
+    <div class="compare">
+      <div class="card"><h3>Existing consumer destinations</h3><div class="list"><div class="row"><b>—</b><span>Google Shopping, marketplaces, travel aggregators</span></div><div class="row"><b>—</b><span>Excellent destinations; rankings can include commercial incentives</span></div><div class="row"><b>—</b><span>Human-facing pages, category silos, uneven machine provenance</span></div></div></div>
+      <div class="card dark"><h3>PriceMCP</h3><div class="list"><div class="row"><b>+</b><span>Agent-native MCP and structured APIs</span></div><div class="row"><b>+</b><span>Neutral ranking with source evidence preserved</span></div><div class="row"><b>+</b><span>One contract across products, travel, FX, and future categories</span></div><div class="row"><b>+</b><span>AI agents are becoming buyers and recommenders now</span></div></div></div>
+    </div>
+    <div class="foot"><span>The opportunity is the trusted data plane beneath every AI shopping experience.</span><span></span></div>
+  </section>
+
+  <section class="slide" data-n="09">
+    <div><div class="eyebrow">Business model hypothesis</div><h2>Usage-based infrastructure with enterprise trust.</h2></div>
+    <div class="stack">
+      <div class="price-box">
+        <div class="card"><strong>Developer API</strong><p>Free evaluation tier, then usage-based MCP/API calls.</p></div>
+        <div class="card"><strong>Enterprise</strong><p>Higher limits, SLAs, private source policies, audit exports, and support.</p></div>
+        <div class="card"><strong>Data partnerships</strong><p>Direct feeds and verified merchant inventory—without paid ranking.</p></div>
+      </div>
+      <div class="roadmap">
+        <div class="card"><span class="when">NEXT</span><h3>Coverage</h3><p>15–20 major US retailers and stronger refresh automation.</p></div>
+        <div class="card"><span class="when">THEN</span><h3>Design partners</h3><p>Agent builders and commerce copilots that need auditable price evidence.</p></div>
+        <div class="card"><span class="when">LATER</span><h3>Category scale</h3><p>Live flights, FX, groceries, tickets, energy, and other price domains.</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>Business model and roadmap are hypotheses; the infrastructure MVP is working.</span><span></span></div>
+  </section>
+
+  <section class="slide closing" data-n="10">
+    <div class="brand"><span class="mark"></span>Price<em>MCP</em></div>
+    <div class="ask">
+      <div class="hero"><div class="eyebrow" style="color:#84a7ff">The ask</div><h1 style="font-size:72px">Help make price evidence a primitive for every AI.</h1><p class="sub">We are looking for design partners, trusted data providers, and agent builders who want neutral, auditable price infrastructure.</p></div>
+      <div class="ask-list"><div class="ask-item">Agent / copilot design partners</div><div class="ask-item">Retailer and travel data partnerships</div><div class="ask-item">Feedback on the MCP contract</div><div class="ask-item">Introductions to commerce infrastructure teams</div></div>
+    </div>
+    <div class="foot"><span class="url">pricemcp.vercel.app/developer</span><span>github.com/tobias-minibot/pricemcp</span></div>
+  </section>
+  <script>
+    const slides=[...document.querySelectorAll('.slide')];
+    const requested=Math.max(1,Math.min(slides.length,Number(new URLSearchParams(location.search).get('slide')||1)));
+    slides.forEach((slide,index)=>slide.classList.toggle('active',index===requested-1));
+    addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key===' '){location.search='?slide='+Math.min(slides.length,requested+1)}if(event.key==='ArrowLeft'){location.search='?slide='+Math.max(1,requested-1)}});
+  </script>
+</body>
+</html>
