@@ -51,7 +51,8 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo&&!options.readOnly)seed(db);const app=Fastify({logger:true});
   const apiToken=process.env.PRICEMCP_API_TOKEN;
   if(apiToken)app.addHook('onRequest',async(req,reply)=>{
-    if(req.url.startsWith('/internal/health'))return;
+    const publicReadOnlyDiagnostic=options.readOnly&&(req.url==='/developer'||req.url.startsWith('/v1/mcp/'));
+    if(req.url.startsWith('/internal/health')||publicReadOnlyDiagnostic)return;
     const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     const valid=supplied.length===apiToken.length&&timingSafeEqual(Buffer.from(supplied),Buffer.from(apiToken));
     if(!valid)return reply.code(401).send({error:'unauthorized'});

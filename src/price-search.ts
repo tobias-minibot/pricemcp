@@ -44,6 +44,11 @@ const cityCode=(value:string):string=>{
   return value.trim().toUpperCase().slice(0,3);
 };
 
+const safeSourceUrl=(value:unknown):string|null=>{
+  if(typeof value!=='string'||!value)return null;
+  try{const url=new URL(value);return url.protocol==='https:'?url.toString():null}catch{return null}
+};
+
 export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearchSubject{
   const dates=query.match(/\b20\d{2}-\d{2}-\d{2}\b/g)||[];
   if(/\b(flight|fly|flying|fare)\b/i.test(query)||(/\b(washington|dc|was|dca|iad)\b/i.test(query)&&/\b(berlin|ber)\b/i.test(query))){
@@ -65,7 +70,7 @@ const productOffer=(offer:any):UniversalOffer=>({
   quote:{amount_minor:offer.price_minor,currency:offer.currency,shipping_minor:offer.shipping_minor,total_minor:offer.total_minor,basis:offer.shipping_minor===null?'item price; shipping unknown':'delivered before destination tax'},
   availability:offer.available?'available':'unavailable',conditions:[offer.condition,offer.membership_required?'membership required':'no membership required'],
   match:{canonical:true,confidence:Number.isFinite(Number(offer.match_confidence))?Number(offer.match_confidence):null},
-  source:{method:offer.source_method,source_product_id:offer.source_product_id??null,url:offer.url},observed_at:offer.observed_at,
+  source:{method:offer.source_method,source_product_id:offer.source_product_id??null,url:safeSourceUrl(offer.url)},observed_at:offer.observed_at,
   freshness:{age_seconds:offer.age_seconds,status:offer.freshness_status},expires_at:null
 });
 
@@ -103,7 +108,7 @@ async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<{offers:U
     const code=String(item.validatingAirlineCodes?.[0]||item.itineraries?.[0]?.segments?.[0]?.carrierCode||'airline');
     const amount=Math.round(Number(item.price?.grandTotal||item.price?.total||0)*100);
     const segments=(item.itineraries||[]).flatMap((itinerary:any)=>itinerary.segments||[]);
-    return {offer_id:`amadeus:${item.id||index}`,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production,provider:{provider_id:code,name:carriers[code]||code,trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.price?.currency||'USD'),shipping_minor:0,total_minor:amount,basis:'flight offer total; ancillary fees may vary'},availability:item.numberOfBookableSeats===0?'unavailable':'available',conditions:[`${Math.max(0,segments.length-(item.itineraries||[]).length)} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`],match:{canonical:true,confidence:1},source:{method:production?'amadeus_flight_offers_live':'amadeus_flight_offers_test',source_product_id:String(item.id||index),url:'https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search'},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:item.lastTicketingDate?`${item.lastTicketingDate}T23:59:59Z`:null};
+    return {offer_id:`amadeus:${item.id||index}`,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production,provider:{provider_id:code,name:carriers[code]||code,trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.price?.currency||'USD'),shipping_minor:0,total_minor:amount,basis:'flight offer total; ancillary fees may vary'},availability:item.numberOfBookableSeats===0?'unavailable':'available',conditions:[`${Math.max(0,segments.length-(item.itineraries||[]).length)} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`],match:{canonical:true,confidence:1},source:{method:production?'amadeus_flight_offers_live':'amadeus_flight_offers_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:item.lastTicketingDate?`${item.lastTicketingDate}T23:59:59Z`:null};
   }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0&&offer.availability==='available').sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
   return {offers,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production};
 }

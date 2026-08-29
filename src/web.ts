@@ -31,6 +31,7 @@ const byId=id=>document.getElementById(id);
 const pretty=value=>JSON.stringify(value,null,2);
 const money=value=>value==null?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100);
 const clear=node=>{while(node.firstChild)node.removeChild(node.firstChild)};
+const safeSourceUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'?url.href:null}catch{return null}};
 async function loadTools(){
   const response=await fetch('/v1/mcp/tools');
   if(!response.ok)throw new Error('tools/list failed with HTTP '+response.status);
@@ -55,7 +56,8 @@ function renderOffers(data){
     const quote=document.createElement('div');quote.className='metric';quote.textContent=money(offer.quote&&offer.quote.total_minor);
     const facts=document.createElement('p');facts.className='microcopy';facts.textContent=(offer.provider&&offer.provider.trusted?'trusted':'not trusted')+' · '+(offer.freshness&&offer.freshness.status||'no freshness')+' · match '+(offer.match&&offer.match.confidence!=null?offer.match.confidence:'unknown')+' · observed '+(offer.observed_at||'unknown');
     card.append(provider,quote,facts);
-    if(offer.source&&offer.source.url){const link=document.createElement('a');link.href=offer.source.url;link.target='_blank';link.rel='nofollow noopener';link.textContent=(offer.source.method||'source')+' →';card.appendChild(link)}
+    const sourceUrl=safeSourceUrl(offer.source&&offer.source.url);
+    if(sourceUrl){const link=document.createElement('a');link.href=sourceUrl;link.target='_blank';link.rel='nofollow noopener';link.textContent=(offer.source.method||'source')+' →';card.appendChild(link)}else{const source=document.createElement('span');source.className='microcopy';source.textContent=(offer.source&&offer.source.method||'source')+' · no safe public URL';card.appendChild(source)}
     grid.appendChild(card);
   });
 }
