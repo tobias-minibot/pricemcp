@@ -42,8 +42,8 @@ export function parseNaturalPriceQuery(query:string,now=new Date()):PriceSearchS
   if(/\b(flight|fly|flying|fare)\b/i.test(query)||(/\b(washington|dc|was|dca|iad)\b/i.test(query)&&/\b(berlin|ber)\b/i.test(query))){
     const route=query.match(/(?:flight\s+)?(?:from\s+)?([A-Za-z ]+?)\s+(?:to|→|-)\s+([A-Za-z ]+?)(?:\s+on|\s+depart|\s+return|\s+20\d{2}|$)/i);
     const origin=cityCode(route?.[1]||'WAS'),destination=cityCode(route?.[2]||'BER');
-    const year=now.getUTCFullYear();
-    return {type:'flight',origin,destination,departure_date:dates[0]||`${year}-09-18`,return_date:dates[1]||`${year}-09-25`,cabin:'economy',adults:1};
+    const nextMonth=(day:number)=>new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,day)).toISOString().slice(0,10);
+    return {type:'flight',origin,destination,departure_date:dates[0]||nextMonth(18),return_date:dates[1]||nextMonth(25),cabin:'economy',adults:1};
   }
   return {type:'product',query:query.trim()};
 }
