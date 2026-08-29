@@ -6,8 +6,14 @@ Context Protocol (MCP). The hackathon workflow adds a TrueForge procurement
 agent that calls PriceMCP, computes an evidence brief in a sandbox, and requires
 human approval before writing a durable decision.
 
-> The default public demo is synthetic, non-purchasable data. It is designed to
-> test agent behavior without presenting scraped prices as live facts.
+**Production:** https://pricemcp.vercel.app
+
+The Vercel deployment serves a timestamped, read-only snapshot of the verified
+live dataset through the website, REST, and MCP. Prices are evidence captured at
+their displayed timestamps—not continuously refreshed inside Vercel—and shipping
+and destination tax remain unknown unless explicitly shown. The separate local
+judge demo remains synthetic and non-purchasable so agent behavior can be tested
+deterministically.
 
 ## One neutral search surface
 
