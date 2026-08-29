@@ -122,8 +122,10 @@ All displayed demo prices must retain the `synthetic: true` and
 
 - TypeScript check: passing
 - Automated tests: 46 passing
-- Bright Data MCP: four exact-SKU AirPods Pro 3 offers collected successfully
-  from Walmart, Target, B&H, and Adorama; no credentials stored in Git
+- Bright Data MCP: four exact-SKU AirPods Pro 3 pages collected from Walmart,
+  Target, B&H, and Adorama; Walmart and Adorama passed offer-scoped seller
+  validation, while Target and B&H were correctly quarantined because seller of
+  record was implicit; no credentials stored in Git
 - Synthetic website, REST, and MCP: passing locally
 - TrueForge connector: seven PriceMCP tools discovered
 - TrueForge MCP + sandbox + approval run: verified end to end; an intentionally

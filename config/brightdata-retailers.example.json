@@ -10,8 +10,6 @@
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "MFHP4LL/A",
       "accepted_sellers": ["Walmart.com"],
-      "accepted_hosts": ["www.walmart.com"],
-      "seller_markers": ["Sold and shipped by Walmart.com"],
       "html_patterns": {
         "title": "\\\"productName\\\":\\\"([^\\\"]+)\\\"",
         "price": "\\\"currentPrice\\\":\\{\\\"price\\\":([0-9.]+)",
@@ -28,19 +26,11 @@
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "85978609",
       "accepted_sellers": ["Target"],
-      "accepted_hosts": ["www.target.com"],
-      "seller_markers": ["Target Circle"],
       "html_patterns": {
         "title": "<title[^>]*>(Apple AirPods Pro 3[^<]+)",
         "price": "data-test=\\\"product-price\\\">\\$([0-9.]+)",
         "availability": "aria-label=\\\"pickup[^\\\"]* - ([^\\\"]*(?:Ready|available)[^\\\"]*)\\\"",
         "sku": "\\\"tcin\\\":\\\"(85978609)\\\""
-      },
-      "markdown_patterns": {
-        "title": "^(Apple AirPods Pro 3 Wireless Earbuds[^\\n]+)",
-        "price": "^\\$(199\\.99) reg \\$249\\.99$",
-        "availability": "Pickup(Ready within [^\\n]+)",
-        "sku": "^Source URL: .*A-(85978609)$"
       }
     },
     {
@@ -49,9 +39,7 @@
       "url": "https://www.bhphotovideo.com/c/product/1920300-REG/apple_mfhp4ll_a_airpods_pro_with_wireless.html",
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "APAIRPODSP3",
-      "accepted_sellers": ["B&H Photo"],
-      "accepted_hosts": ["www.bhphotovideo.com"],
-      "seller_markers": ["Authorized Dealer"]
+      "accepted_sellers": ["B&H Photo"]
     },
     {
       "merchant_id": "adorama",
@@ -59,9 +47,7 @@
       "url": "https://www.adorama.com/apple-airpods-pro-3-magsafe-usb-c-charging-case-noise-canceling-earbuds/p/acmfhp4lla",
       "expected_product_id": "apple-airpods-pro-3",
       "source_product_id": "ACMFHP4LLA",
-      "accepted_sellers": ["Adorama"],
-      "accepted_hosts": ["www.adorama.com"],
-      "seller_markers": ["Adorama Camera, Inc."]
+      "accepted_sellers": ["Adorama"]
     }
   ]
 }

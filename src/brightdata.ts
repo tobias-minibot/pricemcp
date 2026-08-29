@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { readFileSync } from 'node:fs';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { catalog, merchants } from './catalog.js';
 import { matchProduct, parsePrice } from './normalize.js';
 import type { CollectorResult, RawObservation } from './types.js';
@@ -13,8 +14,6 @@ export interface BrightDataTarget {
   expected_product_id: string;
   source_product_id: string;
   accepted_sellers: string[];
-  accepted_hosts?: string[];
-  seller_markers?: string[];
   html_patterns?: ExtractionPatterns;
   markdown_patterns?: ExtractionPatterns;
   selectors?: {
@@ -160,27 +159,30 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
   };
 }
 
-async function brightDataMcpRequest(url: string, mcpUrl: string): Promise<string> {
+async function brightDataMcpRequest(url: string, mcpUrl: string, format: 'html' | 'markdown'): Promise<string> {
   const client = new Client({ name: 'pricemcp-terminal-collector', version: '0.1.0' });
   try {
-    await client.connect(new SSEClientTransport(new URL(mcpUrl)));
-    const response = await client.callTool({ name: 'scrape_as_html', arguments: { url } });
+    const endpoint = new URL(mcpUrl);
+    const transport = endpoint.pathname.endsWith('/mcp')
+      ? new StreamableHTTPClientTransport(endpoint)
+      : new SSEClientTransport(endpoint);
+    await client.connect(transport);
+    const response = await client.callTool({ name: format === 'html' ? 'scrape_as_html' : 'scrape_as_markdown', arguments: { url } });
+    if (response.isError) throw new Error(`Bright Data MCP ${format} extraction failed`);
     const text = textContent(response.content);
+    if (!text.trim()) throw new Error(`Bright Data MCP returned no ${format} document`);
+    if (format === 'markdown') return `${MARKDOWN_PREFIX}${text}`;
     const start = text.indexOf('<'), end = text.lastIndexOf('>');
-    if (!response.isError && start >= 0 && end > start) return text.slice(start, end + 1);
-
-    const fallback = await client.callTool({ name: 'scrape_as_markdown', arguments: { url } });
-    if (fallback.isError) throw new Error('Bright Data MCP HTML and markdown extraction failed');
-    const markdown = textContent(fallback.content);
-    if (!markdown.trim()) throw new Error('Bright Data MCP returned no HTML or markdown document');
-    return `${MARKDOWN_PREFIX}Source URL: ${url}\n${markdown}`;
+    if (start < 0 || end <= start) throw new Error('Bright Data MCP returned no HTML document');
+    return text.slice(start, end + 1);
   } finally {
     await client.close().catch(() => {});
   }
 }
 
-export async function brightDataRequest(url: string, token: string, zone: string, mcpUrl = process.env.BRIGHTDATA_MCP_URL || ''): Promise<string> {
-  if(mcpUrl)return brightDataMcpRequest(url,mcpUrl);
+export async function brightDataRequest(url: string, token: string, zone: string, mcpUrl = process.env.BRIGHTDATA_MCP_URL || '', format: 'html' | 'markdown' = 'html'): Promise<string> {
+  if(mcpUrl)return brightDataMcpRequest(url,mcpUrl,format);
+  if(format==='markdown')throw new Error('Markdown repair requires Bright Data MCP');
   const response = await fetch('https://api.brightdata.com/request', {
     method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({ zone, url, format: 'raw' }), signal: AbortSignal.timeout(30_000)
@@ -213,31 +215,29 @@ export async function collectBrightDataRetailers(
       if (!merchants.some(merchant => merchant.id === target.merchant_id)) throw new Error(`Unknown merchant ${target.merchant_id}`);
       if (!Array.isArray(target.accepted_sellers) || !target.accepted_sellers.length) throw new Error('accepted_sellers must contain at least one seller of record');
       const html = await brightDataRequest(target.url, token, zone, mcpUrl);
-      const extracted = extractBrightDataProduct(html, target);
-      let sellerEvidence = 'structured';
-      if (!extracted.seller) {
-        const host = new URL(target.url).hostname.toLowerCase();
-        const hostAllowed = (target.accepted_hosts ?? []).some(value => value.toLowerCase() === host);
-        const markerFound = (target.seller_markers ?? []).some(marker => html.toLowerCase().includes(marker.toLowerCase()));
-        if (hostAllowed && markerFound) {
-          extracted.seller = target.merchant_name;
-          sellerEvidence = 'first-party-host-marker';
-        }
+      let extracted: ExtractedProduct;
+      try {
+        extracted = extractBrightDataProduct(html, target);
+      } catch (htmlError) {
+        if (!mcpUrl || !target.markdown_patterns) throw htmlError;
+        const markdown = await brightDataRequest(target.url, token, zone, mcpUrl, 'markdown');
+        extracted = extractBrightDataProduct(markdown, target);
       }
       const sellerAllowed = target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
-      if (!sellerAllowed) throw new Error(`Rejected seller of record: ${extracted.seller || 'unknown'}`);
       if (!extracted.source_product_id || extracted.source_product_id.toLowerCase() !== target.source_product_id.trim().toLowerCase()) {
         throw new Error(`Rejected retailer SKU: expected ${target.source_product_id}, observed ${extracted.source_product_id || 'unknown'}`);
       }
       const matched = matchProduct(extracted.title, catalog), exact = matched.product?.id === target.expected_product_id;
+      const collectionStatus = !exact ? 'unmatched' : !sellerAllowed ? 'rejected_policy' : extracted.available ? 'success' : 'unavailable';
       observations.push({
         source, source_method: method, merchant_id: target.merchant_id, source_product_id: target.source_product_id,
         url: target.url, observed_at: new Date().toISOString(), title: extracted.title, raw_price: extracted.raw_price,
         currency: extracted.currency, price_minor: parsePrice(extracted.raw_price, extracted.currency), shipping_minor: null,
         available: extracted.available, condition: 'new', matched_product_id: exact ? target.expected_product_id : null,
-        match_confidence: exact ? matched.confidence : 0, collection_status: exact ? (extracted.available ? 'success' : 'unavailable') : 'unmatched',
-        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller, seller_evidence: sellerEvidence, extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
+        match_confidence: exact ? matched.confidence : 0, collection_status: collectionStatus,
+        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller || null, seller_evidence: extracted.seller ? 'structured' : 'missing', extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
       });
+      if(!sellerAllowed)errors.push(`${target.merchant_name} ${target.url}: Rejected seller of record: ${extracted.seller || 'unknown'}`);
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
   }
   return { source, method, status: errors.length ? (observations.length ? 'partial' : 'failed') : 'success', observations, matched_products: new Set(observations.filter(item => item.matched_product_id).map(item => item.matched_product_id)).size, errors };

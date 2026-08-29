@@ -48,6 +48,7 @@ export function extractAttributes(title: string): Record<string, string | number
 }
 
 export function matchProduct(title: string, products: CatalogProduct[]): { product: CatalogProduct | null; confidence: number } {
+  if(/\b(?:case|cover|skin|holder|strap|tips?|adapter|cable)\s+(?:for|compatible\s+with)\b/i.test(title))return{product:null,confidence:0};
   const text = normalizeText(title);
   const attrs = extractAttributes(title);
   let best: CatalogProduct | null = null;

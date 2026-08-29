@@ -189,14 +189,15 @@ exact expected canonical SKU. Bright Data solves page access; it does not
 override PriceMCP's trust, freshness, or product-equivalence checks.
 
 The live validation set uses one genuinely identical SKU: **Apple AirPods Pro 3,
-MFHP4LL/A / UPC 195950543698**. A successful four-offer collection on
-2026-08-29 around 16:00 America/New_York observed Walmart and Target at USD
-199.99, B&H at USD 225.00, and Adorama at USD 249.00. Walmart's seller was
-explicitly `Walmart.com`; Adorama's seller was structured; B&H was supported by
-its first-party host and Authorized Dealer marker; Target's seller was implicit
-on its first-party PDP and is disclosed as such. Destination tax remains
-unknown, and delivery timing is location-dependent, so this is not represented
-as a guaranteed landed-cost comparison.
+MFHP4LL/A / UPC 195950543698**. A four-page collection on 2026-08-29 around
+16:00 America/New_York observed Walmart and Target at USD 199.99, B&H at USD
+225.00, and Adorama at USD 249.00. Walmart's `Walmart.com` seller and Adorama's
+seller were offer-scoped structured evidence, so those offers were accepted.
+Target and B&H did not expose offer-scoped seller identity in the retrieved
+documents, so PriceMCP preserved their price evidence but quarantined both as
+`rejected_policy` instead of synthesizing a seller from generic page text.
+Destination tax remains unknown, and delivery timing is location-dependent, so
+this is not represented as a guaranteed landed-cost comparison.
 
 Trust scores are manual MVP policy inputs, not review ratings. They reflect seller identity certainty, manufacturer authorization, source ownership, and fulfillment reliability. An offer is “trusted” only when the merchant is verified and authorized, score is at least 0.75, the seller is not unresolved marketplace inventory, and condition is new.
 
