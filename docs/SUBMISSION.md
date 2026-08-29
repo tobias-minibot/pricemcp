@@ -121,7 +121,7 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 57 passing
+- Automated tests: 59 passing
 - Bright Data MCP: four exact-SKU AirPods Pro 3 pages collected from Walmart,
   Target, B&H, and Adorama; Walmart and Adorama expose offer-scoped seller
   evidence, while Target and B&H first-party PDP seller identity is transparently

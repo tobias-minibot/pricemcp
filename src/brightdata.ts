@@ -48,6 +48,7 @@ type ExtractedProduct = {
   currency: string;
   available: boolean;
   seller: string;
+  seller_candidates: string[];
   source_product_id: string;
   extraction_path: 'json-ld' | 'saved-selectors' | 'saved-html-rules' | 'saved-markdown-rules';
   selector_repairs: string[];
@@ -94,6 +95,7 @@ const extractWithPatterns = (
     currency: 'USD',
     available: hasPositiveAvailability(availability),
     seller,
+    seller_candidates: seller ? [seller] : [],
     source_product_id: sku,
     extraction_path: extractionPath,
     selector_repairs: Object.values(patterns)
@@ -140,7 +142,17 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
     );
   }
   const $ = cheerio.load(html);
-  for (const product of jsonLdProducts($)) {
+  const products = jsonLdProducts($);
+  const savedSellerEvidence = [
+    target.html_patterns?.seller ? capturePattern(html, target.html_patterns.seller) : '',
+    textAtFirstMatch($, target.selectors?.seller).value
+  ].filter(Boolean);
+  const jsonLdSellerEvidence = products.flatMap(product => {
+    const offers = Array.isArray(product.offers) ? product.offers : [product.offers].filter(Boolean);
+    return offers.map((offer: any) => String(offer?.seller?.name ?? offer?.seller ?? '').trim()).filter(Boolean);
+  });
+  const sellerCandidates = [...new Set([...jsonLdSellerEvidence, ...savedSellerEvidence])];
+  for (const product of products) {
     const offers = Array.isArray(product.offers) ? product.offers : [product.offers].filter(Boolean);
     for (const offer of offers) {
       const price = String(offer?.price ?? offer?.lowPrice ?? '').trim();
@@ -151,7 +163,8 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
       return {
         title: String(product.name).trim(), raw_price: price.startsWith('$') ? price : `$${price}`,
         currency: String(offer?.priceCurrency ?? 'USD').toUpperCase(),
-        available: hasPositiveAvailability(availability), seller, source_product_id: sourceProductId,
+        available: hasPositiveAvailability(availability), seller, seller_candidates: sellerCandidates,
+        source_product_id: sourceProductId,
         extraction_path: 'json-ld', selector_repairs: []
       };
     }
@@ -172,7 +185,8 @@ export function extractBrightDataProduct(html: string, target: BrightDataTarget)
   return {
     title: title.value, raw_price: price.value.match(/\$[\d,]+(?:\.\d{2})?/)?.[0] ?? price.value,
     currency: 'USD', available: hasPositiveAvailability(availability.value),
-    seller: seller.value, source_product_id: sku.value, extraction_path: 'saved-selectors', selector_repairs: repairs
+    seller: seller.value, seller_candidates: seller.value ? [seller.value] : [],
+    source_product_id: sku.value, extraction_path: 'saved-selectors', selector_repairs: repairs
   };
 }
 
@@ -240,8 +254,12 @@ export async function collectBrightDataRetailers(
         const markdown = await brightDataRequest(target.url, token, zone, mcpUrl, 'markdown');
         extracted = extractBrightDataProduct(markdown, target);
       }
-      const implicitFirstParty = !extracted.seller && isApprovedImplicitFirstParty(target);
-      const sellerAllowed = implicitFirstParty || target.accepted_sellers.some(seller => seller.toLowerCase() === extracted.seller.toLowerCase());
+      const acceptedSellers = new Set(target.accepted_sellers.map(seller => seller.trim().toLowerCase()));
+      const conflictingSellers = extracted.seller_candidates.filter(seller => !acceptedSellers.has(seller.toLowerCase()));
+      const implicitFirstParty = !extracted.seller && conflictingSellers.length === 0 && isApprovedImplicitFirstParty(target);
+      const sellerAllowed = conflictingSellers.length === 0 && (
+        implicitFirstParty || acceptedSellers.has(extracted.seller.toLowerCase())
+      );
       if (!extracted.source_product_id || extracted.source_product_id.toLowerCase() !== target.source_product_id.trim().toLowerCase()) {
         throw new Error(`Rejected retailer SKU: expected ${target.source_product_id}, observed ${extracted.source_product_id || 'unknown'}`);
       }
@@ -253,9 +271,9 @@ export async function collectBrightDataRetailers(
         currency: extracted.currency, price_minor: parsePrice(extracted.raw_price, extracted.currency), shipping_minor: null,
         available: extracted.available, condition: 'new', matched_product_id: exact ? target.expected_product_id : null,
         match_confidence: exact ? matched.confidence : 0, collection_status: collectionStatus,
-        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller || (implicitFirstParty ? target.merchant_name : null), seller_evidence: extracted.seller ? 'structured' : implicitFirstParty ? 'retailer-owned-pdp-inferred' : 'missing', extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
+        raw_payload: { provider: 'bright-data', merchant_name: target.merchant_name, seller_of_record: extracted.seller || (implicitFirstParty ? target.merchant_name : null), seller_evidence: extracted.seller ? 'structured' : implicitFirstParty ? 'retailer-owned-pdp-inferred' : 'missing', seller_candidates: extracted.seller_candidates, conflicting_sellers: conflictingSellers, extraction_path: extracted.extraction_path, selector_repairs: extracted.selector_repairs, expected_product_id: target.expected_product_id }
       });
-      if(!sellerAllowed)errors.push(`${target.merchant_name} ${target.url}: Rejected seller of record: ${extracted.seller || 'unknown'}`);
+      if(!sellerAllowed)errors.push(`${target.merchant_name} ${target.url}: Rejected seller of record or conflicting evidence: ${conflictingSellers.join(', ') || extracted.seller || 'unknown'}`);
     } catch (error) { errors.push(`${target.merchant_name} ${target.url}: ${error instanceof Error ? error.message : String(error)}`); }
   }
   const accepted = observations.filter(item => item.collection_status === 'success' || item.collection_status === 'unavailable');
