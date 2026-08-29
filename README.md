@@ -6,7 +6,8 @@ Context Protocol (MCP). The hackathon workflow adds a TrueForge procurement
 agent that calls PriceMCP, computes an evidence brief in a sandbox, and requires
 human approval before writing a durable decision.
 
-**Hackathon judge links:** [live read-only app](https://pricemcp.vercel.app) ·
+**Hackathon judge links:** [live infrastructure console](https://pricemcp.vercel.app/developer) ·
+[consumer search](https://pricemcp.vercel.app) ·
 [2:27 demo video](https://youtu.be/UFDzSPeujXQ) ·
 [TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
 [public Qodo review evidence](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759)
@@ -31,6 +32,27 @@ boundary in one command:
 ```bash
 npm run verify:live
 ```
+
+## Live infrastructure proof
+
+The public `/developer` console is a judge-oriented view of the real system. It
+does not replay a canned JSON response: it creates an official MCP SDK client,
+loads the deployed server's `tools/list` response, and invokes the read-only
+`search_price` tool. The console makes the normally hidden pipeline visible:
+
+```text
+MCP request
+  → canonical entity / itinerary
+  → multiple provider observations
+  → comparable quote envelope
+  → trust + availability + freshness gates
+  → ranked response with source URL and timestamp provenance
+```
+
+The default AirPods Pro 3 query uses the deployed multi-retailer snapshot. The
+flight button uses the narrow WAS→BER fixture and labels it synthetic and
+non-bookable in both the UI and structured response. The diagnostic bridge
+allowlists only `search_price`; the production MCP server remains read-only.
 
 ## One neutral search surface
 

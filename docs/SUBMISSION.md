@@ -121,7 +121,10 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 62 passing
+- Automated tests: 66 passing
+- Public infrastructure console: real read-only MCP `tools/list` and
+  `search_price` invocation, live product provenance, measured latency, and a
+  separately disclosed synthetic flight contract
 - Bright Data MCP: four exact-SKU AirPods Pro 3 pages collected from Walmart,
   Target, B&H, and Adorama; Walmart and Adorama expose offer-scoped seller
   evidence, while Target and B&H first-party PDP seller identity is transparently

@@ -160,7 +160,7 @@ export function getProduct(db: Db, id: string): any | null {
 }
 
 export function getOffers(db: Db, productId: string, maxAgeHours?: number): any[] {
-  const rows = db.prepare(`SELECT o.*,po.source_method,po.dataset,po.synthetic,m.name merchant_name,m.verified,m.authorized,m.trust_score,m.source_type,m.shipping_reliability,m.marketplace_seller,m.notes merchant_notes
+  const rows = db.prepare(`SELECT o.*,po.source_method,po.match_confidence,po.dataset,po.synthetic,m.name merchant_name,m.verified,m.authorized,m.trust_score,m.source_type,m.shipping_reliability,m.marketplace_seller,m.notes merchant_notes
     FROM offers o JOIN merchants m ON m.id=o.merchant_id JOIN price_observations po ON po.id=o.observation_id WHERE o.product_id=? ORDER BY o.total_minor ASC,m.trust_score DESC`).all(productId) as any[];
   return rows.map(row=>({...row,available:!!row.available,verified:!!row.verified,authorized:!!row.authorized,marketplace_seller:!!row.marketplace_seller,membership_required:!!row.membership_required,synthetic:!!row.synthetic,...freshness(row.observed_at),trusted:!!row.verified&&!!row.authorized&&row.trust_score>=0.75&&!row.marketplace_seller&&row.condition==='new'}))
     .filter(row=>maxAgeHours===undefined || row.age_seconds <= maxAgeHours*3600);

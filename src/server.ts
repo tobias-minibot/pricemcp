@@ -1,19 +1,58 @@
 import Fastify from 'fastify';
 import { timingSafeEqual } from 'node:crypto';
 import { Cron } from 'croner';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, history, health, recordCollection, listFeaturedProducts } from './db.js';
 import { createMcpServer } from './mcp.js';
-import { homePage, productPage, statusPage } from './web.js';
+import { developerPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
+
+async function withDiagnosticMcp<T>(db:ReturnType<typeof openDatabase>,options:{allowDemoFlights:boolean;forceDemoFlights?:boolean},run:(client:Client)=>Promise<T>):Promise<T>{
+  const [clientTransport,serverTransport]=InMemoryTransport.createLinkedPair();
+  const server=createMcpServer(db,{allowWrites:false,...options});
+  const client=new Client({name:'pricemcp-infrastructure-console',version:'0.1.0'});
+  try{
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    return await run(client);
+  }finally{
+    await client.close().catch(()=>undefined);
+    await server.close().catch(()=>undefined);
+  }
+}
+
+function diagnosticTrace(data:any,durationMs:number){
+  const offers=Array.isArray(data?.offers)?data.offers:[];
+  const providers=[...new Set(offers.map((offer:any)=>offer?.provider?.name).filter(Boolean))];
+  const provenanceCount=offers.filter((offer:any)=>offer?.source?.url).length;
+  const ages=offers.map((offer:any)=>offer?.freshness?.age_seconds).filter((value:any)=>Number.isFinite(value));
+  return{
+    transport:'Model Context Protocol via the official TypeScript SDK',
+    endpoint:'/mcp',
+    duration_ms:durationMs,
+    canonical_identity:data?.subject?.product_id??(data?.subject?.type==='flight'?`${data.subject.origin}-${data.subject.destination}`:null),
+    entity_type:data?.subject?.type??null,
+    normalized_offer_count:offers.length,
+    provider_count:providers.length,
+    providers,
+    provenance_urls:provenanceCount,
+    freshest_age_seconds:ages.length?Math.min(...ages):null,
+    validation:data?.subject?.type==='product'?['unique canonical entity','exact variant','trusted seller','availability','freshness']:['complete itinerary','provider configured or explicit synthetic fixture','comparable total','conditions preserved'],
+    ranking_policy:data?.ranking?.policy??null,
+    generated_at:new Date().toISOString()
+  };
+}
 
 export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo&&!options.readOnly)seed(db);const app=Fastify({logger:true});
   const apiToken=process.env.PRICEMCP_API_TOKEN;
   if(apiToken)app.addHook('onRequest',async(req,reply)=>{
-    if(req.url.startsWith('/internal/health'))return;
+    const publicReadOnlyDiagnostic=options.readOnly&&(req.url==='/developer'||req.url.startsWith('/v1/mcp/'));
+    if(req.url.startsWith('/internal/health')||publicReadOnlyDiagnostic)return;
     const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     const valid=supplied.length===apiToken.length&&timingSafeEqual(Buffer.from(supplied),Buffer.from(apiToken));
     if(!valid)return reply.code(401).send({error:'unauthorized'});
@@ -21,9 +60,31 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const requestedMaxAgeHours=(query:any):number|undefined=>{const value=query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;if(value!==undefined&&(!Number.isFinite(value)||value<0))throw Object.assign(new Error('max_age must be a finite nonnegative number'),{statusCode:400});return value};
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
+  app.get('/developer',(_req,reply)=>reply.type('text/html').send(developerPage()));
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
   app.get('/internal/health',()=>health(db));
+  app.get('/v1/mcp/tools',async()=>{
+    const started=performance.now();
+    return withDiagnosticMcp(db,{allowDemoFlights:isDemo},async client=>{
+      const result=await client.listTools();
+      return{protocol:'MCP',server:'PriceMCP',endpoint:'/mcp',transport:'Streamable HTTP in production; official SDK loopback for this introspection response',read_only:true,duration_ms:Number((performance.now()-started).toFixed(2)),tools:result.tools};
+    });
+  });
+  app.post('/v1/mcp/invoke',async(req,reply)=>{
+    const body=(req.body||{}) as any;
+    if(body.tool!=='search_price')return reply.code(400).send({status:'invalid_request',error:'The public diagnostic bridge only permits the read-only search_price tool.'});
+    if(!body.arguments||typeof body.arguments!=='object'||Array.isArray(body.arguments))return reply.code(400).send({status:'invalid_request',error:'arguments must be an object'});
+    const demoFlight=body.demo===true;
+    if(demoFlight&&body.arguments.type!=='flight')return reply.code(400).send({status:'invalid_request',error:'demo mode is restricted to the explicitly labeled flight fixture'});
+    const started=performance.now();
+    return withDiagnosticMcp(db,{allowDemoFlights:isDemo||demoFlight,forceDemoFlights:demoFlight},async client=>{
+      const result=await client.callTool({name:'search_price',arguments:body.arguments});
+      const durationMs=Number((performance.now()-started).toFixed(2));
+      const structured=(result as any).structuredContent??null;
+      return{protocol:'MCP',server:'PriceMCP',tool:'search_price',endpoint:'/mcp',execution:'official MCP SDK client → PriceMCP MCP server',mode:demoFlight?'synthetic_flight_fixture':'live_snapshot',request:body.arguments,response:structured,trace:diagnosticTrace(structured,durationMs)};
+    });
+  });
   app.get('/v1/search',(req)=>{const q=String((req.query as any).q||'');return{dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,query:q,results:searchProducts(db,q),observed_scope:'US',currency:'USD'}});
   app.get('/v1/products/:id',(req,reply)=>{const p=getProduct(db,(req.params as any).id);return p||reply.code(404).send({error:'not_found'})});
   app.get('/v1/products/:id/offers',(req)=>{const id=(req.params as any).id,max=requestedMaxAgeHours(req.query);const all=getOffers(db,id),offers=max===undefined?all:getOffers(db,id,max);return{dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,product:getProduct(db,id),offers,max_age_seconds:max===undefined?null:max*3600,excluded_outside_max_age:all.length-offers.length}});
@@ -33,7 +94,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   app.post('/v1/search-price',async(req,reply)=>{const input=(req.body||{}) as any;if(input.type!=='product'&&input.type!=='flight')return reply.code(400).send({status:'invalid_request',error:'type must be product or flight'});if(input.type==='product'){if(typeof input.query!=='string'||!input.query.trim())return reply.code(400).send({status:'invalid_request',error:'product query is required'});return searchPrice(db,{type:'product',query:input.query.trim()},{maxAgeHours:requestedMaxAgeHours(req.query)});}const required=['origin','destination','departure_date'] as const;if(required.some(field=>typeof input[field]!=='string'||!input[field].trim()))return reply.code(400).send({status:'invalid_request',error:'origin, destination, and departure_date are required'});if(!isIsoDate(input.departure_date)||input.return_date&&!isIsoDate(input.return_date))return reply.code(400).send({status:'invalid_request',error:'flight dates must be valid YYYY-MM-DD values'});const cabins=['economy','premium_economy','business','first'] as const;if(input.cabin!==undefined&&!cabins.includes(input.cabin))return reply.code(400).send({status:'invalid_request',error:'unsupported cabin'});const cabin=input.cabin||'economy',adults=Number(input.adults||1);if(!Number.isInteger(adults)||adults<1||adults>9)return reply.code(400).send({status:'invalid_request',error:'adults must be an integer from 1 to 9'});return searchPrice(db,{type:'flight',origin:input.origin,destination:input.destination,departure_date:input.departure_date,...(input.return_date?{return_date:input.return_date}:{}),cabin,adults},{allowDemoFlights:isDemo});});
   const notImplemented=(category:string)=>({status:'not_implemented',category,dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,schema:{subject:{type:category},quote:{amount_minor:null,currency:null},provider:null,conditions:[],observed_at:null,expires_at:null},data:null});
   app.get('/v1/fx',()=>notImplemented('fx'));app.get('/v1/flights',async(req)=>{const query=req.query as any;if(!query.origin||!query.destination||!query.departure_date)return notImplemented('flight');return searchPrice(db,{type:'flight',origin:String(query.origin),destination:String(query.destination),departure_date:String(query.departure_date),return_date:query.return_date?String(query.return_date):undefined,cabin:query.cabin||'economy',adults:Number(query.adults||1)},{allowDemoFlights:isDemo});});
-  app.all('/mcp',async(req,reply)=>{const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});reply.raw.on('close',()=>transport.close());await createMcpServer(db,{allowWrites:!options.readOnly}).connect(transport);await transport.handleRequest(req.raw,reply.raw,(req as any).body);reply.hijack()});
+  app.all('/mcp',async(req,reply)=>{const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});reply.raw.on('close',()=>transport.close());await createMcpServer(db,{allowWrites:!options.readOnly,allowDemoFlights:isDemo}).connect(transport);await transport.handleRequest(req.raw,reply.raw,(req as any).body);reply.hijack()});
   return app;
 }
 
