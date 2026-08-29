@@ -9,6 +9,8 @@ human approval before writing a durable decision.
 **Hackathon judge links:** [live infrastructure console](https://pricemcp.vercel.app/developer) ·
 [consumer search](https://pricemcp.vercel.app) ·
 [2:08 judge-first demo video](https://youtu.be/TUL5xt7JkJ4) ·
+[investor pitch deck](./docs/assets/pricemcp-pitch-deck.pdf) ·
+[2:25 narrated investor pitch](https://youtu.be/l5E2G2A_r2A) ·
 [TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
 [public Qodo review evidence](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759)
 
@@ -43,6 +45,20 @@ npm run verify:submission
 
 The official form and its receipt remain a manual external gate; this command
 does not open, edit, or submit the form.
+
+## Investor narrative
+
+The separate [10-slide investor deck](./docs/assets/pricemcp-pitch-deck.pdf) and
+[2:25 narrated pitch](https://youtu.be/l5E2G2A_r2A) explain the company-level
+thesis: PriceMCP can become the neutral price data plane beneath AI shopping,
+travel, and other price-aware agents. The
+[editable HTML source](./docs/pitch-deck.html) is print-ready at 16:9. A
+[standalone SVG wordmark](./docs/assets/pricemcp-logo.svg) uses the same visual
+system as the deck and product.
+
+The deck deliberately separates verified MVP proof from hypotheses. Product
+metrics describe the deployed snapshot and test suite; the business model,
+market expansion, and roadmap are labeled as proposals, not traction.
 
 ## Live infrastructure proof
 

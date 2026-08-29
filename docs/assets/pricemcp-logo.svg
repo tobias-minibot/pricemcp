@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">PriceMCP</title>
+  <desc id="desc">PriceMCP wordmark with a normalized quote stack symbol</desc>
+  <rect width="960" height="240" rx="40" fill="#f5f7fa"/>
+  <g transform="translate(68 52)">
+    <rect width="136" height="136" rx="34" fill="#0d111b"/>
+    <path d="M38 38h63a17 17 0 0 1 17 17v8a17 17 0 0 1-17 17H65v22H38V38Z" fill="#3156d8"/>
+    <rect x="38" y="98" width="80" height="20" rx="10" fill="#65d6b4"/>
+    <circle cx="100" cy="59" r="7" fill="#f5f7fa"/>
+  </g>
+  <text x="242" y="151" fill="#0d111b" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="104" font-weight="850" letter-spacing="-7">Price<tspan fill="#3156d8">MCP</tspan></text>
+</svg>
