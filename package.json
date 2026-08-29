@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "collect": "tsx src/cli.ts collect",
+    "collect:brightdata": "tsx src/cli.ts collect:brightdata",
     "seed": "tsx src/cli.ts seed",
     "demo:seed": "PRICEMCP_DB=./data/pricemcp-demo.db tsx src/seed-demo.ts",
     "demo:start": "PRICEMCP_DB=./data/pricemcp-demo.db tsx src/seed-demo.ts && PRICEMCP_DB=./data/pricemcp-demo.db PRICEMCP_DATASET=pricemcp-demo-v1 PRICEMCP_SCHEDULER=false PORT=3200 tsx src/server.ts",
