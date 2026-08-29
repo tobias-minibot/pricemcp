@@ -50,6 +50,15 @@ const MARKDOWN_PREFIX = 'PRICEMCP_BRIGHTDATA_MARKDOWN\n';
 const capturePattern = (document: string, pattern: string): string =>
   document.match(new RegExp(pattern, 'im'))?.[1]?.replace(/\s+/g, ' ').trim() ?? '';
 
+const textContent = (content: unknown): string => {
+  if (!Array.isArray(content)) return '';
+  return content.flatMap(item => {
+    if (!item || typeof item !== 'object') return [];
+    const block = item as Record<string, unknown>;
+    return block.type === 'text' && typeof block.text === 'string' ? [block.text] : [];
+  }).join('\n');
+};
+
 const extractWithPatterns = (
   document: string,
   patterns: ExtractionPatterns,
@@ -156,19 +165,13 @@ async function brightDataMcpRequest(url: string, mcpUrl: string): Promise<string
   try {
     await client.connect(new SSEClientTransport(new URL(mcpUrl)));
     const response = await client.callTool({ name: 'scrape_as_html', arguments: { url } });
-    const text = response.content
-      .filter(item => item.type === 'text')
-      .map(item => item.text)
-      .join('\n');
+    const text = textContent(response.content);
     const start = text.indexOf('<'), end = text.lastIndexOf('>');
     if (!response.isError && start >= 0 && end > start) return text.slice(start, end + 1);
 
     const fallback = await client.callTool({ name: 'scrape_as_markdown', arguments: { url } });
     if (fallback.isError) throw new Error('Bright Data MCP HTML and markdown extraction failed');
-    const markdown = fallback.content
-      .filter(item => item.type === 'text')
-      .map(item => item.text)
-      .join('\n');
+    const markdown = textContent(fallback.content);
     if (!markdown.trim()) throw new Error('Bright Data MCP returned no HTML or markdown document');
     return `${MARKDOWN_PREFIX}Source URL: ${url}\n${markdown}`;
   } finally {
