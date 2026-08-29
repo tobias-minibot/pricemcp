@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 const timeoutMs = 20_000;
 
@@ -50,11 +49,11 @@ const releaseMetadata = await (await fetchOk(releaseApiUrl)).json();
 const releaseAsset = releaseMetadata.assets?.find((asset) => asset.name === 'pricemcp-demo.mp4');
 assert(releaseAsset, 'GitHub release is missing pricemcp-demo.mp4');
 
-const localVideoUrl = new URL('../docs/assets/pricemcp-demo.mp4', import.meta.url);
-const [localVideo, localVideoStat] = await Promise.all([readFile(localVideoUrl), stat(localVideoUrl)]);
-const localVideoDigest = `sha256:${createHash('sha256').update(localVideo).digest('hex')}`;
-assert(releaseAsset.size === localVideoStat.size, `release video size ${releaseAsset.size} does not match local artifact ${localVideoStat.size}`);
-assert(releaseAsset.digest === localVideoDigest, `release video digest ${releaseAsset.digest} does not match local artifact ${localVideoDigest}`);
+const demoChecksum = (await readFile(new URL('../docs/assets/pricemcp-demo.sha256', import.meta.url), 'utf8')).trim();
+const checksumMatch = demoChecksum.match(/^([a-f0-9]{64})\s+pricemcp-demo\.mp4$/);
+assert(checksumMatch, 'demo checksum manifest is malformed');
+const expectedVideoDigest = `sha256:${checksumMatch[1]}`;
+assert(releaseAsset.digest === expectedVideoDigest, `release video digest ${releaseAsset.digest} does not match manifest ${expectedVideoDigest}`);
 
 const release = await fetchOk(releaseAsset.browser_download_url, { method: 'HEAD' });
 assert(release.url.includes('release-assets.githubusercontent.com'), 'GitHub release video did not resolve to a release asset');
@@ -70,7 +69,7 @@ console.log(JSON.stringify({
   qodo_evidence: `PR #2 merged; ${qodoComments.length} public comments inspected`,
   youtube_url: youtubeUrl,
   youtube_video: video.title,
-  release_backup: 'reachable; size and sha256 match the local demo artifact',
+  release_backup: 'reachable; sha256 matches the tracked demo manifest',
   developer_console: 'reachable with live MCP and synthetic-flight disclosures',
   local_disclosures: 'synthetic dataset and approval boundary preserved',
   manual_gate: 'official submission form and receipt require human/external confirmation',
