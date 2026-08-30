@@ -97,6 +97,21 @@ fabricated live fare.
 [narrated investor pitch](https://youtu.be/l5E2G2A_r2A) ·
 [SVG wordmark](./docs/assets/pricemcp-logo.svg)
 
+## Team
+
+### [Tobias Martens](https://linkedin.com/in/tbsmartens) — Founder & Product Lead
+
+Tobias is a product and technology builder focused on AI-native commerce
+infrastructure. He founded PriceMCP around a simple thesis: every AI agent should
+be able to ask what something costs and receive a normalized, auditable answer—
+without sponsored ranking. He leads product strategy, system design, and
+end-to-end execution across the MCP platform, trust layer, and consumer search
+experience.
+
+PriceMCP is being built with an agent-native operating model: AI agents assist
+with engineering and research, while reproducible tests, Qodo review, explicit
+human approval boundaries, and source-level evidence keep the work accountable.
+
 ## Technical implementation
 
 PriceMCP is a working MVP for trusted, normalized, freshness-aware price lookup.
