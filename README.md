@@ -81,6 +81,11 @@ flight button uses the narrow WAS→BER fixture and labels it synthetic and
 non-bookable in both the UI and structured response. The diagnostic bridge
 allowlists only `search_price`; the production MCP server remains read-only.
 
+![PriceMCP live MCP infrastructure console](./docs/assets/pricemcp-developer.jpg)
+
+The screenshot shows the live product path. The adjacent flight control remains
+the separately disclosed synthetic, non-bookable fixture described above.
+
 ## One neutral search surface
 
 The hackathon interface turns the infrastructure into a simple consumer and
