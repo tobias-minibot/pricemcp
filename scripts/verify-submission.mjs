@@ -57,6 +57,18 @@ const repo = await (await fetchOk('https://api.github.com/repos/tobias-minibot/p
 assert(repo.private === false, 'GitHub repository is not public');
 assert(repo.default_branch === 'main', `unexpected default branch: ${repo.default_branch}`);
 
+const mainCommit = await (await fetchOk('https://api.github.com/repos/tobias-minibot/pricemcp/commits/main')).json();
+assert(mainCommit.sha, 'GitHub main branch did not resolve to a commit');
+const mainChecks = await (
+  await fetchOk(`https://api.github.com/repos/tobias-minibot/pricemcp/commits/${mainCommit.sha}/check-runs`, {
+    headers: { accept: 'application/vnd.github+json' },
+  })
+).json();
+const successfulCi = mainChecks.check_runs?.find(
+  (check) => check.name === 'verify' && check.status === 'completed' && check.conclusion === 'success',
+);
+assert(successfulCi, `current main commit ${mainCommit.sha.slice(0, 7)} does not have a successful CI verify check`);
+
 const qodoPr = await (await fetchOk('https://api.github.com/repos/tobias-minibot/pricemcp/pulls/2')).json();
 assert(qodoPr.merged_at, 'Qodo evidence PR #2 is not merged');
 
@@ -108,6 +120,7 @@ for (const marker of ['Live MCP infrastructure console', 'Actual MCP request', '
 console.log(JSON.stringify({
   status: 'ready',
   repository: `${repo.full_name} (${repo.visibility.toLowerCase()})`,
+  ci: `current main ${mainCommit.sha.slice(0, 7)} verified`,
   qodo_evidence: `PR #2 merged; ${qodoComments.length} public comments inspected`,
   youtube_url: youtubeUrl,
   youtube_video: video.title,
