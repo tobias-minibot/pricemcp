@@ -71,19 +71,29 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
       return{protocol:'MCP',server:'PriceMCP',endpoint:'/mcp',transport:'Streamable HTTP in production; official SDK loopback for this introspection response',read_only:true,duration_ms:Number((performance.now()-started).toFixed(2)),tools:result.tools};
     });
   });
+  const invokeDiagnostic=async(args:Record<string,unknown>,demoFlight=false)=>{
+    const started=performance.now();
+    return withDiagnosticMcp(db,{allowDemoFlights:isDemo||demoFlight,forceDemoFlights:demoFlight},async client=>{
+      const result=await client.callTool({name:'search_price',arguments:args});
+      const durationMs=Number((performance.now()-started).toFixed(2));
+      const structured=(result as any).structuredContent??null;
+      return{protocol:'MCP',server:'PriceMCP',tool:'search_price',endpoint:'/mcp',execution:'official MCP SDK client → PriceMCP MCP server',mode:demoFlight?'synthetic_flight_fixture':isDemo?'synthetic_demo':'live_snapshot',request:args,response:structured,trace:diagnosticTrace(structured,durationMs)};
+    });
+  };
   app.post('/v1/mcp/invoke',async(req,reply)=>{
     const body=(req.body||{}) as any;
     if(body.tool!=='search_price')return reply.code(400).send({status:'invalid_request',error:'The public diagnostic bridge only permits the read-only search_price tool.'});
     if(!body.arguments||typeof body.arguments!=='object'||Array.isArray(body.arguments))return reply.code(400).send({status:'invalid_request',error:'arguments must be an object'});
     const demoFlight=body.demo===true;
     if(demoFlight&&body.arguments.type!=='flight')return reply.code(400).send({status:'invalid_request',error:'demo mode is restricted to the explicitly labeled flight fixture'});
-    const started=performance.now();
-    return withDiagnosticMcp(db,{allowDemoFlights:isDemo||demoFlight,forceDemoFlights:demoFlight},async client=>{
-      const result=await client.callTool({name:'search_price',arguments:body.arguments});
-      const durationMs=Number((performance.now()-started).toFixed(2));
-      const structured=(result as any).structuredContent??null;
-      return{protocol:'MCP',server:'PriceMCP',tool:'search_price',endpoint:'/mcp',execution:'official MCP SDK client → PriceMCP MCP server',mode:demoFlight?'synthetic_flight_fixture':'live_snapshot',request:body.arguments,response:structured,trace:diagnosticTrace(structured,durationMs)};
-    });
+    return invokeDiagnostic(body.arguments,demoFlight);
+  });
+  app.post('/v1/mcp/search',async(req,reply)=>{
+    const query=String(((req.body||{}) as any).query||'').trim();
+    if(!query)return reply.code(400).send({status:'invalid_request',error:'query is required'});
+    const subject=parseNaturalPriceQuery(query);
+    if(subject.type==='incomplete')return reply.code(400).send({status:'invalid_request',error:`Missing ${subject.missing.join(' and ')}`,subject});
+    return invokeDiagnostic(subject,isDemo&&subject.type==='flight');
   });
   app.get('/v1/search',(req)=>{const q=String((req.query as any).q||'');return{dataset:isDemo?'pricemcp-demo-v1':'live',synthetic:isDemo,query:q,results:searchProducts(db,q),observed_scope:'US',currency:'USD'}});
   app.get('/v1/products/:id',(req,reply)=>{const p=getProduct(db,(req.params as any).id);return p||reply.code(404).send({error:'not_found'})});
