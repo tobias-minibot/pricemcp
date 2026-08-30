@@ -1,27 +1,121 @@
 # PriceMCP
 
+<p align="center">
+  <img src="./docs/assets/pricemcp-logo.svg" alt="PriceMCP" width="560">
+</p>
+
+<p align="center"><strong>The neutral price layer for AI.</strong></p>
+
+<p align="center">
+  <a href="https://pricemcp.vercel.app/developer">Live infrastructure</a> ·
+  <a href="https://pricemcp.vercel.app">Consumer search</a> ·
+  <a href="https://youtu.be/TUL5xt7JkJ4">2:08 product demo</a> ·
+  <a href="./docs/assets/pricemcp-pitch-deck.pdf">Investor deck</a> ·
+  <a href="https://youtu.be/l5E2G2A_r2A">2:25 investor pitch</a>
+</p>
+
+## The pitch
+
+AI can find a price. That does not mean it found the **right product, current
+offer, trusted seller, complete total, or source an agent can safely cite**.
+PriceMCP is an MCP-first price-data layer that turns a price question into
+normalized, source-backed evidence.
+
+### Problem
+
+- Retailers describe the same product and variant differently.
+- Prices go stale, while shipping, membership, availability, seller identity,
+  and tax are often hidden behind a headline number.
+- Existing shopping and travel rankings are built as consumer destinations and
+  may include advertising or affiliate incentives—not neutral agent trust.
+
+### Insight
+
+**A price is not a number. It is an evidence object.** A useful agent response
+must keep the canonical subject, normalized quote, provider, conditions,
+availability, freshness, match confidence, timestamp, and source together.
+
+### Product
+
+```text
+User or AI asks what something costs
+  → PriceMCP resolves the exact product or itinerary
+  → trusted sources are queried and normalized
+  → trust, availability, freshness, and conditions gate ranking
+  → the agent receives structured offers with provenance intact
+```
+
+The same `search_price` MCP tool can serve products today, flights through the
+same category-aware quote contract, and later FX and other price domains.
+
+### Wedge and expansion
+
+1. **Start with Apple products:** finite catalog, exact variants, high purchase
+   intent, and recognizable merchants.
+2. **Cover the US retail sources that matter:** onboard the 15–20 major
+   retailers instead of chasing a weak long tail.
+3. **Expand the contract:** live travel, FX, groceries, tickets, energy, and
+   other domains where source and timestamp are essential.
+
+### Why now
+
+MCP gives agents a standard way to discover and call tools just as AI systems
+are becoming recommenders and buyers. They need a neutral machine data plane
+beneath commerce—not another sponsored destination page.
+
+### Business model hypothesis
+
+- Free developer evaluation, then usage-based MCP and API calls.
+- Enterprise plans for higher limits, SLAs, private source policies, audit
+  exports, and support.
+- Direct merchant and data-provider feeds that improve coverage without selling
+  ranking position.
+
+### The ask
+
+We are looking for agent and copilot design partners, trusted retailer and
+travel data providers, and commerce infrastructure teams that need auditable
+price evidence.
+
+## Working proof—not pitchware
+
+- **5 retailers** normalized in the live AirPods Pro 3 query.
+- **7 read-only MCP tools** exposed with machine-readable schemas.
+- **38 canonical products and 28 offers** in the deployed timestamped snapshot.
+- **66 automated tests**, green CI, Qodo-reviewed pull requests, and a live
+  read-only production boundary.
+- A TrueForge agent that calls PriceMCP, runs an independent sandbox
+  calculation, and pauses for human approval before an append-only decision.
+
+The product proof is live; the business model and roadmap above are explicitly
+hypotheses, not traction. The product deployment is a timestamped snapshot, and
+the flight example is explicitly synthetic and non-bookable rather than a
+fabricated live fare.
+
+**Pitch assets:** [10-slide PDF](./docs/assets/pricemcp-pitch-deck.pdf) ·
+[editable 16:9 HTML](./docs/pitch-deck.html) ·
+[narrated investor pitch](https://youtu.be/l5E2G2A_r2A) ·
+[SVG wordmark](./docs/assets/pricemcp-logo.svg)
+
+## Technical implementation
+
 PriceMCP is a working MVP for trusted, normalized, freshness-aware price lookup.
 It exposes one SQLite-backed evidence model through a website, REST, and Model
 Context Protocol (MCP). The hackathon workflow adds a TrueForge procurement
 agent that calls PriceMCP, computes an evidence brief in a sandbox, and requires
 human approval before writing a durable decision.
 
-**Hackathon judge links:** [live infrastructure console](https://pricemcp.vercel.app/developer) ·
-[consumer search](https://pricemcp.vercel.app) ·
-[2:08 judge-first demo video](https://youtu.be/TUL5xt7JkJ4) ·
-[investor pitch deck](./docs/assets/pricemcp-pitch-deck.pdf) ·
-[2:25 narrated investor pitch](https://youtu.be/l5E2G2A_r2A) ·
-[TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
-[public Qodo review evidence](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759)
+**Technical evidence:** [TrueForge reproduction guide](./docs/SUBMISSION.md#reproduce-the-demo) ·
+[public Qodo review](https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759) ·
+[architecture diagram](./docs/architecture.html)
 
 The Vercel deployment serves a timestamped, read-only snapshot of the verified
 live dataset through the website, REST, and MCP. Its MCP surface omits the
 `record_decision` write tool, and the SQLite connection enforces query-only mode.
-Prices are evidence captured at
-their displayed timestamps—not continuously refreshed inside Vercel—and shipping
-and destination tax remain unknown unless explicitly shown. The separate local
-judge demo remains synthetic and non-purchasable so agent behavior can be tested
-deterministically.
+Prices are evidence captured at their displayed timestamps—not continuously
+refreshed inside Vercel—and shipping and destination tax remain unknown unless
+explicitly shown. The separate local judge demo remains synthetic and
+non-purchasable so agent behavior can be tested deterministically.
 
 The live MCP endpoint is `https://pricemcp.vercel.app/mcp`. The separate
 TrueForge judge workflow intentionally uses the local synthetic service so its
@@ -45,20 +139,6 @@ npm run verify:submission
 
 The official form and its receipt remain a manual external gate; this command
 does not open, edit, or submit the form.
-
-## Investor narrative
-
-The separate [10-slide investor deck](./docs/assets/pricemcp-pitch-deck.pdf) and
-[2:25 narrated pitch](https://youtu.be/l5E2G2A_r2A) explain the company-level
-thesis: PriceMCP can become the neutral price data plane beneath AI shopping,
-travel, and other price-aware agents. The
-[editable HTML source](./docs/pitch-deck.html) is print-ready at 16:9. A
-[standalone SVG wordmark](./docs/assets/pricemcp-logo.svg) uses the same visual
-system as the deck and product.
-
-The deck deliberately separates verified MVP proof from hypotheses. Product
-metrics describe the deployed snapshot and test suite; the business model,
-market expansion, and roadmap are labeled as proposals, not traction.
 
 ## Live infrastructure proof
 
