@@ -64,6 +64,16 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
   app.get('/internal/health',()=>health(db));
+  app.get('/v1/hackathon-partners',()=>({
+    status:'verified_submission_evidence',
+    generated_at:new Date().toISOString(),
+    partners:[
+      {name:'Bright Data',role:'Retailer evidence access',state:'verified',facts:['4 exact AirPods Pro 3 retailer PDPs collected','Walmart, Target, B&H, and Adorama','saved extraction and repair rules'],evidence:'/developer'},
+      {name:'TrueForge',role:'Agent runtime and approval boundary',state:'verified',facts:['PriceMCP called through MCP','Python executed in an isolated sandbox','durable action paused for human approval'],evidence:'/docs/SUBMISSION.md'},
+      {name:'Qodo',role:'Independent code review',state:'verified',facts:['public review completed','2 substantive findings fixed','submission path reverified after fixes'],evidence:'https://github.com/tobias-minibot/pricemcp/pull/2#issuecomment-5464186759'}
+    ],
+    boundary:'This endpoint reports recorded submission evidence. It does not claim that every partner is a price-data source or that retailer pages are fetched on each request.'
+  }));
   app.get('/v1/mcp/tools',async()=>{
     const started=performance.now();
     return withDiagnosticMcp(db,{allowDemoFlights:isDemo},async client=>{
