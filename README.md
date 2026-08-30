@@ -11,7 +11,7 @@
   <a href="https://pricemcp.vercel.app">Consumer search</a> ·
   <a href="https://youtu.be/TUL5xt7JkJ4">2:08 product demo</a> ·
   <a href="./docs/assets/pricemcp-pitch-deck.pdf">Investor deck</a> ·
-  <a href="https://youtu.be/l5E2G2A_r2A">2:25 investor pitch</a>
+  <a href="https://youtu.be/pIZ76XynkgI">2:42 investor pitch</a>
 </p>
 
 ## The pitch
@@ -94,7 +94,7 @@ fabricated live fare.
 
 **Pitch assets:** [10-slide PDF](./docs/assets/pricemcp-pitch-deck.pdf) ·
 [editable 16:9 HTML](./docs/pitch-deck.html) ·
-[narrated investor pitch](https://youtu.be/l5E2G2A_r2A) ·
+[narrated investor pitch](https://youtu.be/pIZ76XynkgI) ·
 [SVG wordmark](./docs/assets/pricemcp-logo.svg)
 
 ## Team
