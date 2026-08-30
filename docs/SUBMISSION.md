@@ -121,7 +121,7 @@ All displayed demo prices must retain the `synthetic: true` and
 ## Verification status
 
 - TypeScript check: passing
-- Automated tests: 66 passing
+- Automated tests: 67 passing
 - Public infrastructure console: real read-only MCP `tools/list` and
   `search_price` invocation, live product provenance, measured latency, and a
   separately disclosed synthetic flight contract
