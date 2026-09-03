@@ -1,8 +1,8 @@
 # PriceMCP — WebMCP Challenge
 
 - Live application: <https://pricemcp.vercel.app>
-- Public 1:36 YouTube demo: <https://youtu.be/W9RaTHM8rwA>
-- Reproducible video backup: <https://github.com/tobias-minibot/pricemcp/releases/download/webmcp-challenge-v1/pricemcp-webmcp-demo.mp4>
+- Public 1:30 YouTube demo: <https://youtu.be/8UA3jLzF6_s>
+- Reproducible video backup: <https://github.com/tobias-minibot/pricemcp/releases/download/webmcp-challenge-v2/pricemcp-webmcp-demo.mp4>
 - Implementation pull requests: [#30](https://github.com/tobias-minibot/pricemcp/pull/30), [#31](https://github.com/tobias-minibot/pricemcp/pull/31)
 
 ## What people and agents do together
@@ -86,6 +86,7 @@ result reported `dataset: pricemcp-demo-v1`, `synthetic: true`, and the boundary
 `Synthetic demonstration; not live, purchasable, or bookable.` The same
 execution rendered the shared WAS–BER result into the page.
 
-The YouTube upload is 1:36, public, contains audio, and passed YouTube's checks
-with no issues found. Its exact release backup has SHA-256 digest
-`507e7385082f0edf5ca4559f33199dcdfd1e077babcbcd1cf5bb5ae5db2d8e82`.
+The YouTube upload is 1:30, public, contains OpenAI Cedar narration, and passed
+YouTube's checks with no issues found. Its exact release backup has SHA-256
+digest
+`c215d98c83b331ea1cfad8cce71e4de61fa03ef84232f6826a1e75d55bbe5ee0`.
