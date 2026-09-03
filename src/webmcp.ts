@@ -23,15 +23,15 @@ export const webMcpClientScript = `<script>
   const conciseSearch=data=>{
     const response=data.response||{},best=response.best_offer||null;
     const offers=Array.isArray(response.offers)?response.offers:[];
-    const result={status:response.status,subject:response.subject||null,best_offer:best?{
+    const result={status:response.status,dataset:response.dataset,synthetic:response.synthetic,subject:response.subject||null,best_offer:best?{
       provider:best.provider&&best.provider.name,total_minor:best.quote&&best.quote.total_minor,
       currency:best.quote&&best.quote.currency,basis:best.quote&&best.quote.basis,
-      observed_at:best.observed_at,source_url:best.source&&best.source.url
+      conditions:best.conditions,observed_at:best.observed_at,source_url:best.source&&best.source.url
     }:null,alternatives:offers.filter(offer=>!best||offer.offer_id!==best.offer_id).slice(0,2).map(offer=>({
       provider:offer.provider&&offer.provider.name,total_minor:offer.quote&&offer.quote.total_minor,
       currency:offer.quote&&offer.quote.currency,conditions:offer.conditions,source_url:offer.source&&offer.source.url
     })),ranking:response.ranking&&response.ranking.explanation,evidence_generated_at:data.trace&&data.trace.generated_at,
-    boundary:'Read-only evidence. Tax and shipping may be unknown; inspect basis and conditions.'};
+    boundary:response.synthetic?'Synthetic demonstration; not live, purchasable, or bookable.':'Read-only evidence. Tax and shipping may be unknown; inspect basis and conditions.'};
     let output=JSON.stringify(result);
     if(output.length>1450){result.alternatives=[];output=JSON.stringify(result)}
     return output;
@@ -54,7 +54,8 @@ export const webMcpClientScript = `<script>
     const response=data.response||{},best=response.best_offer;
     const heading=document.createElement('h2');heading.textContent='Shared agent result';
     const note=document.createElement('div');note.className='card winner';
-    const title=document.createElement('h3');title.textContent=response.subject&&response.subject.name||response.subject&&response.subject.query||'Price evidence';
+    const subject=response.subject||{};
+    const title=document.createElement('h3');title.textContent=subject.name||subject.query||(subject.type==='flight'?(subject.origin+' → '+subject.destination):'Price evidence');
     const summary=document.createElement('p');summary.className='lead';
     summary.textContent=best?((best.provider&&best.provider.name||'Unknown provider')+' · '+new Intl.NumberFormat('en-US',{style:'currency',currency:best.quote&&best.quote.currency||'USD'}).format((best.quote&&best.quote.total_minor||0)/100)):'No qualifying offer';
     const detail=document.createElement('p');detail.className='microcopy';detail.textContent=(response.ranking&&response.ranking.explanation||[]).join(' ')||response.error||'No additional ranking detail.';
