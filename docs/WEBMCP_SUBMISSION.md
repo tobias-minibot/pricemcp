@@ -1,5 +1,10 @@
 # PriceMCP — WebMCP Challenge
 
+- Live application: <https://pricemcp.vercel.app>
+- Public 1:36 YouTube demo: <https://youtu.be/W9RaTHM8rwA>
+- Reproducible video backup: <https://github.com/tobias-minibot/pricemcp/releases/download/webmcp-challenge-v1/pricemcp-webmcp-demo.mp4>
+- Implementation pull requests: [#30](https://github.com/tobias-minibot/pricemcp/pull/30), [#31](https://github.com/tobias-minibot/pricemcp/pull/31)
+
 ## What people and agents do together
 
 A person opens PriceMCP and asks their browser agent to find an exact product
@@ -71,3 +76,16 @@ In a browser without WebMCP, the fixed status pill explains how to enable it.
 All production tools remain read-only. Product data is a deployed timestamped
 snapshot; location-dependent tax is excluded and unknown shipping is disclosed
 rather than estimated.
+
+## Verified evidence
+
+On September 3, 2026 UTC, Chrome 152 with `WebMCPTesting` enabled discovered all
+three tools through `document.modelContext.getTools()` and executed
+`run_flight_price_demo` through `document.modelContext.executeTool()`. The live
+result reported `dataset: pricemcp-demo-v1`, `synthetic: true`, and the boundary
+`Synthetic demonstration; not live, purchasable, or bookable.` The same
+execution rendered the shared WAS–BER result into the page.
+
+The YouTube upload is 1:36, public, contains audio, and passed YouTube's checks
+with no issues found. Its exact release backup has SHA-256 digest
+`507e7385082f0edf5ca4559f33199dcdfd1e077babcbcd1cf5bb5ae5db2d8e82`.

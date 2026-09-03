@@ -10,6 +10,7 @@
   <a href="https://pricemcp.vercel.app/developer">Live infrastructure</a> ·
   <a href="https://pricemcp.vercel.app">Consumer search</a> ·
   <a href="./docs/WEBMCP_SUBMISSION.md">WebMCP implementation</a> ·
+  <a href="https://youtu.be/W9RaTHM8rwA">1:36 WebMCP demo</a> ·
   <a href="https://youtu.be/TUL5xt7JkJ4">2:08 product demo</a> ·
   <a href="./docs/assets/pricemcp-pitch-deck.pdf">Investor deck</a> ·
   <a href="https://youtu.be/pIZ76XynkgI">2:42 investor pitch</a>
