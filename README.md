@@ -332,6 +332,7 @@ The web/API server listens on `http://127.0.0.1:3199` by default. Runtime settin
 - Reserved schema: `/v1/fx` explicitly returns `not_implemented` and never data
 - HTTP MCP: `POST /mcp` (stateless Streamable HTTP)
 - stdio MCP: `npm run mcp`
+- Strands companion agent (Python, local Ollama, read-only tools): see [`agents/strands/README.md`](agents/strands/README.md)
 
 Example Codex/Claude-style stdio configuration:
 
@@ -519,3 +520,7 @@ Future categories share this envelope without pretending that products, FX, and 
   "expires_at": "ISO-8601 or null"
 }
 ```
+
+## Hackathon submissions
+
+Every entry clears [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) before the form is touched.

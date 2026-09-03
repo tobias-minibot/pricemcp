@@ -1,0 +1,13 @@
+[project]
+name = "pricemcp-strands-companion"
+version = "0.1.0"
+description = "A Strands agent that plans price decisions through the PriceMCP server"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "mcp>=1.13,<2",
+  "strands-agents[ollama]>=1.9,<2",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<9"]
+

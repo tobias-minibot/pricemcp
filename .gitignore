@@ -27,3 +27,8 @@ openclaw-workspace-state.json
 PRICEMCP_MVP_REPORT.md
 .vercel
 .env*
+
+# Strands companion agent (Python)
+agents/strands/.venv/
+__pycache__/
+.pytest_cache/
