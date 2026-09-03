@@ -6,10 +6,11 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, history, health, recordCollection, listFeaturedProducts } from './db.js';
 import { createMcpServer } from './mcp.js';
-import { developerPage, homePage, productPage, statusPage } from './web.js';
+import { companionPage, developerPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
+import { catalogSummary } from './subject-catalog.js';
 
 async function withDiagnosticMcp<T>(db:ReturnType<typeof openDatabase>,options:{allowDemoFlights:boolean;forceDemoFlights?:boolean},run:(client:Client)=>Promise<T>):Promise<T>{
   const [clientTransport,serverTransport]=InMemoryTransport.createLinkedPair();
@@ -60,6 +61,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const requestedMaxAgeHours=(query:any):number|undefined=>{const value=query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;if(value!==undefined&&(!Number.isFinite(value)||value<0))throw Object.assign(new Error('max_age must be a finite nonnegative number'),{statusCode:400});return value};
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
+  app.get('/companion',(_req,reply)=>reply.type('text/html').send(companionPage({flightProviderConfigured:Boolean(process.env.DUFFEL_ACCESS_TOKEN||process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)})));
   app.get('/developer',(_req,reply)=>reply.type('text/html').send(developerPage()));
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
@@ -74,6 +76,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
     ],
     boundary:'This endpoint reports recorded submission evidence. It does not claim that every partner is a price-data source or that retailer pages are fetched on each request.'
   }));
+  app.get('/v1/catalog',()=>catalogSummary());
   app.get('/v1/mcp/tools',async()=>{
     const started=performance.now();
     return withDiagnosticMcp(db,{allowDemoFlights:isDemo},async client=>{

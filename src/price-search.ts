@@ -35,6 +35,8 @@ export type PriceSearchResult = {
   error?:string;
 };
 
+type FlightProviderResult = {provider:string;offers:UniversalOffer[];dataset:string;synthetic:boolean};
+
 export const isIsoDate=(value:string):boolean=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const parsed=new Date(`${value}T00:00:00Z`);return !Number.isNaN(parsed.valueOf())&&parsed.toISOString().slice(0,10)===value};
 
 const cityCode=(value:string):string=>{
@@ -91,7 +93,7 @@ const demoFlightOffers=(subject:FlightPriceSubject):UniversalOffer[]=>{
   }));
 };
 
-async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<{offers:UniversalOffer[];dataset:string;synthetic:boolean}>{
+async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<FlightProviderResult>{
   const key=process.env.AMADEUS_API_KEY||'',secret=process.env.AMADEUS_API_SECRET||'';
   if(!key||!secret)throw new Error('AMADEUS_API_KEY and AMADEUS_API_SECRET are not configured');
   const production=process.env.AMADEUS_ENV==='production';
@@ -110,8 +112,48 @@ async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<{offers:U
     const segments=(item.itineraries||[]).flatMap((itinerary:any)=>itinerary.segments||[]);
     return {offer_id:`amadeus:${item.id||index}`,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production,provider:{provider_id:code,name:carriers[code]||code,trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.price?.currency||'USD'),shipping_minor:0,total_minor:amount,basis:'flight offer total; ancillary fees may vary'},availability:item.numberOfBookableSeats===0?'unavailable':'available',conditions:[`${Math.max(0,segments.length-(item.itineraries||[]).length)} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`],match:{canonical:true,confidence:1},source:{method:production?'amadeus_flight_offers_live':'amadeus_flight_offers_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://developers.amadeus.com/self-service/category/flights/api-doc/flight-offers-search')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:item.lastTicketingDate?`${item.lastTicketingDate}T23:59:59Z`:null};
   }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0&&offer.availability==='available').sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
-  return {offers,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production};
+  return {provider:'Amadeus',offers,dataset:production?'amadeus-production':'amadeus-test',synthetic:!production};
 }
+
+async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProviderResult>{
+  const token=process.env.DUFFEL_ACCESS_TOKEN||'';
+  if(!token)throw new Error('DUFFEL_ACCESS_TOKEN is not configured');
+  const environment=process.env.DUFFEL_ENV||'test';
+  if(environment!=='test'&&environment!=='production')throw new Error('DUFFEL_ENV must be test or production');
+  const expectedPrefix=environment==='production'?'duffel_live_':'duffel_test_';
+  if(!token.startsWith(expectedPrefix))throw new Error(`DUFFEL_ACCESS_TOKEN does not match DUFFEL_ENV=${environment}; refusing the request`);
+  const slices=[{origin:subject.origin,destination:subject.destination,departure_date:subject.departure_date}];
+  if(subject.return_date)slices.push({origin:subject.destination,destination:subject.origin,departure_date:subject.return_date});
+  const response=await fetch('https://api.duffel.com/air/offer_requests?return_offers=true&supplier_timeout=10000',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','duffel-version':'v2',accept:'application/json'},body:JSON.stringify({data:{slices,passengers:Array.from({length:subject.adults||1},()=>({type:'adult'})),cabin_class:subject.cabin||'economy'}}),signal:AbortSignal.timeout(25_000)});
+  if(!response.ok)throw new Error(`Duffel Offer Requests HTTP ${response.status}`);
+  const payload=await response.json() as any,items=Array.isArray(payload?.data?.offers)?payload.data.offers:[];
+  const offers=items.map((item:any,index:number):UniversalOffer=>{
+    const amount=Math.round(Number(item.total_amount||0)*100),owner=item.owner||{},segments=(item.slices||[]).flatMap((slice:any)=>slice.segments||[]);
+    const sliceCount=Math.max(1,(item.slices||[]).length),stops=Math.max(0,segments.length-sliceCount);
+    const bags=(item.passengers||[]).flatMap((passenger:any)=>passenger.baggages||[]).map((bag:any)=>`${bag.quantity||1} ${String(bag.type||'bag').replace(/_/g,' ')}`);
+    const changeable=item.conditions?.change_before_departure?.allowed,refundable=item.conditions?.refund_before_departure?.allowed;
+    const conditions=[`${stops} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`,...(bags.length?[`included: ${[...new Set(bags)].join(', ')}`]:['baggage inclusion unknown']),changeable===true?'changes allowed before departure':changeable===false?'changes not allowed before departure':'change rules unknown',refundable===true?'refund allowed before departure':refundable===false?'non-refundable before departure':'refund rules unknown'];
+    return {offer_id:`duffel:${item.id||index}`,dataset:item.live_mode===true?'duffel-live':'duffel-test',synthetic:item.live_mode!==true,provider:{provider_id:String(owner.id||'duffel'),name:String(owner.name||'Duffel airline offer'),trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.total_currency||'USD'),shipping_minor:0,total_minor:amount,basis:'Duffel offer total; baggage and fare conditions disclosed separately'},availability:'available',conditions,match:{canonical:true,confidence:1},source:{method:item.live_mode===true?'duffel_flights_live':'duffel_flights_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://duffel.com/docs/api/v2/offer-requests')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:typeof item.expires_at==='string'?item.expires_at:null};
+  }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0).sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
+  const synthetic=offers.every((offer:UniversalOffer)=>offer.synthetic);
+  if(environment==='test'&&!synthetic)throw new Error('Duffel returned live inventory while DUFFEL_ENV=test; refusing the result');
+  return{provider:'Duffel',offers,dataset:synthetic?'duffel-test':'duffel-live',synthetic};
+}
+
+async function configuredFlightOffers(subject:FlightPriceSubject):Promise<{offers:UniversalOffer[];dataset:string;synthetic:boolean;errors:string[]}|null>{
+  const providers:Array<{name:string;run:()=>Promise<FlightProviderResult>}>=[];
+  if(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)providers.push({name:'Amadeus',run:()=>amadeusFlightOffers(subject)});
+  if(process.env.DUFFEL_ACCESS_TOKEN)providers.push({name:'Duffel',run:()=>duffelFlightOffers(subject)});
+  if(!providers.length)return null;
+  const settled=await Promise.allSettled(providers.map(provider=>provider.run())),results:FlightProviderResult[]=[],errors:string[]=[];
+  settled.forEach((item,index)=>item.status==='fulfilled'?results.push(item.value):errors.push(`${providers[index]!.name}: ${item.reason instanceof Error?item.reason.message:String(item.reason)}`));
+  if(!results.length)throw new Error(errors.join('; '));
+  const all=results.flatMap(result=>result.offers),hasLive=all.some(offer=>!offer.synthetic),eligible=hasLive?all.filter(offer=>!offer.synthetic):all;
+  eligible.sort((a,b)=>a.quote.total_minor-b.quote.total_minor);
+  return{offers:eligible,dataset:results.length>1?'multi-source':results[0]!.dataset,synthetic:!hasLive,errors};
+}
+
+export const flightProviderInternals={duffelFlightOffers,amadeusFlightOffers,configuredFlightOffers};
 
 export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allowDemoFlights?:boolean;forceDemoFlights?:boolean;maxAgeHours?:number}={}):Promise<PriceSearchResult>{
   if(subject.type==='incomplete')return{status:'no_match',subject,best_offer:null,offers:[],ranking:{policy:'complete itinerary required',explanation:[`Missing ${subject.missing.join(' and ')}; PriceMCP did not invent an itinerary.`]},dataset:process.env.PRICEMCP_DATASET||'live',synthetic:process.env.PRICEMCP_DATASET==='pricemcp-demo-v1'};
@@ -125,9 +167,9 @@ export async function searchPrice(db:Db,subject:PriceSearchSubject,options:{allo
   }
   const normalized={...subject,origin:cityCode(subject.origin),destination:cityCode(subject.destination),cabin:subject.cabin||'economy',adults:subject.adults||1};
   try{
-    const hasCredentials=!options.forceDemoFlights&&Boolean(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET);
-    if(!hasCredentials&&!options.allowDemoFlights)return{status:'not_configured',subject:normalized,best_offer:null,offers:[],ranking:{policy:'lowest comparable eligible fare',explanation:['No flight provider is configured; PriceMCP did not invent a quote.']},dataset:'live',synthetic:false,error:'Amadeus credentials are not configured'};
-    const result=hasCredentials?await amadeusFlightOffers(normalized):{offers:demoFlightOffers(normalized),dataset:'pricemcp-demo-v1',synthetic:true};
-    return{status:result.offers.length?'ok':'no_match',subject:normalized,best_offer:result.offers[0]||null,offers:result.offers,ranking:{policy:'lowest comparable available total',explanation:[result.offers.length?'Fares are ordered by observed total, with data source and conditions preserved.':'No fare matched the requested itinerary and demo/provider scope.','No sponsored or affiliate ranking input is used.']},dataset:result.dataset,synthetic:result.synthetic};
+    const configured=options.forceDemoFlights?null:await configuredFlightOffers(normalized);
+    if(!configured&&!options.allowDemoFlights)return{status:'not_configured',subject:normalized,best_offer:null,offers:[],ranking:{policy:'lowest comparable eligible fare',explanation:['No flight provider is configured; PriceMCP did not invent a quote.']},dataset:'live',synthetic:false,error:'Amadeus or Duffel credentials are not configured'};
+    const result=configured||{offers:demoFlightOffers(normalized),dataset:'pricemcp-demo-v1',synthetic:true,errors:[]};
+    return{status:result.offers.length?'ok':'no_match',subject:normalized,best_offer:result.offers[0]||null,offers:result.offers,ranking:{policy:'lowest comparable available total',explanation:[result.offers.length?'Fares are ordered by observed total, with data source and conditions preserved.':'No fare matched the requested itinerary and demo/provider scope.',...(result.errors.length?[`Some configured providers failed and were excluded: ${result.errors.join('; ')}`]:[]),'No sponsored or affiliate ranking input is used.']},dataset:result.dataset,synthetic:result.synthetic};
   }catch(error){return{status:'provider_error',subject:normalized,best_offer:null,offers:[],ranking:{policy:'fail closed',explanation:['The provider failed, so PriceMCP emitted no fare.']},dataset:'live',synthetic:false,error:error instanceof Error?error.message:String(error)};}
 }

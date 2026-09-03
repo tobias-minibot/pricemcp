@@ -64,8 +64,11 @@ User or AI asks what something costs
   → the agent receives structured offers with provenance intact
 ```
 
-The same `search_price` MCP tool can serve products today, flights through the
-same category-aware quote contract, and later FX and other price domains.
+The same `search_price` MCP tool serves products today and flights through the
+same category-aware quote contract. `list_catalog` publishes the canonical
+identity and material-term contracts for products, flights, stays, rental cars,
+activities, and transfers without pretending every category already has live
+inventory.
 
 ### Wedge and expansion
 
@@ -228,15 +231,29 @@ category-specific subject fields:
 }
 ```
 
-The flight demo is intentionally narrow. With Amadeus credentials, PriceMCP uses
-the official Flight Offers Search API. Amadeus test-environment results are marked
-synthetic because the test dataset is restricted. In the synthetic demo service,
+The flight demo is intentionally narrow. With provider credentials, PriceMCP
+fans out to the official Amadeus Flight Offers Search and Duffel Flights APIs,
+normalizes their offers, discloses partial provider failures, and ranks only
+comparable results. Amadeus test and Duffel non-live results are marked synthetic
+and never compete against production inventory. In the synthetic demo service,
 the WAS→BER fixture is visibly labeled demo-only and not bookable. In live mode
 without credentials—or when the provider fails—PriceMCP returns no fare rather
 than inventing one.
 
 Incomplete itineraries and ambiguous product queries return candidates or
 missing-field guidance, never an arbitrary variant, route, or travel date.
+
+To verify Duffel without creating a booking, put a `duffel_test_...` token in
+the ignored local `.env` file as `DUFFEL_ACCESS_TOKEN`, leave
+`DUFFEL_ENV=test`, and run:
+
+```bash
+npm run verify:duffel -- JFK LHR 2026-10-10 2026-10-17
+```
+
+The smoke check only creates an Offer Request and prints a sanitized fare
+summary. It refuses live tokens and does not create an order, payment, hold, or
+booking.
 
 ![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
 
@@ -320,13 +337,14 @@ The web/API server listens on `http://127.0.0.1:3199` by default. Runtime settin
 
 ## Interfaces
 
-- Website: `/`, `/products/{id}`, `/status`
+- Website: `/`, `/companion`, `/products/{id}`, `/status`
 - Health JSON: `/internal/health`
-- REST: `POST /v1/search-price`, `/v1/search`, `/v1/products/{id}`, `/v1/products/{id}/offers`, `/v1/products/{id}/history`, `/v1/compare`, `/v1/best-price/{id}`
+- REST: `POST /v1/search-price`, `/v1/catalog`, `/v1/search`, `/v1/products/{id}`, `/v1/products/{id}/offers`, `/v1/products/{id}/history`, `/v1/compare`, `/v1/best-price/{id}`
 - Flights: `/v1/flights` accepts `origin`, `destination`, `departure_date`, and optional `return_date`; without a complete query it retains the schema-complete `not_implemented` response
 - Reserved schema: `/v1/fx` explicitly returns `not_implemented` and never data
 - HTTP MCP: `POST /mcp` (stateless Streamable HTTP)
 - stdio MCP: `npm run mcp`
+- Strands companion agent (Python, local Ollama, read-only tools): see [`agents/strands/README.md`](agents/strands/README.md)
 
 Example Codex/Claude-style stdio configuration:
 
@@ -343,7 +361,8 @@ Example Codex/Claude-style stdio configuration:
 }
 ```
 
-Universal read tool: `search_price` with either a product or flight subject.
+Catalog read tool: `list_catalog`. Universal comparison tool: `search_price`
+with either a product or flight subject.
 
 ```json
 { "type": "product", "query": "Mac mini M4 16GB 256GB" }
@@ -513,3 +532,7 @@ Future categories share this envelope without pretending that products, FX, and 
   "expires_at": "ISO-8601 or null"
 }
 ```
+
+## Hackathon submissions
+
+Every entry clears [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) before the form is touched.
