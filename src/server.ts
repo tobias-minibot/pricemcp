@@ -10,6 +10,7 @@ import { companionPage, developerPage, homePage, productPage, statusPage } from 
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
+import { catalogSummary } from './subject-catalog.js';
 
 async function withDiagnosticMcp<T>(db:ReturnType<typeof openDatabase>,options:{allowDemoFlights:boolean;forceDemoFlights?:boolean},run:(client:Client)=>Promise<T>):Promise<T>{
   const [clientTransport,serverTransport]=InMemoryTransport.createLinkedPair();
@@ -75,6 +76,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
     ],
     boundary:'This endpoint reports recorded submission evidence. It does not claim that every partner is a price-data source or that retailer pages are fetched on each request.'
   }));
+  app.get('/v1/catalog',()=>catalogSummary());
   app.get('/v1/mcp/tools',async()=>{
     const started=performance.now();
     return withDiagnosticMcp(db,{allowDemoFlights:isDemo},async client=>{

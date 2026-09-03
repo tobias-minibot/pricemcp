@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Db } from './db.js';
 import { bestPrice, getOffers, getProduct, history, listDecisions, recordDecision, searchProducts } from './db.js';
 import { isIsoDate, searchPrice } from './price-search.js';
+import { catalogSummary } from './subject-catalog.js';
 
 const response=(data:unknown)=>({content:[{type:'text' as const,text:JSON.stringify(data)}],structuredContent:data as Record<string,unknown>});
 const productView=(p:any)=>p?({product_id:p.id,brand:p.brand,category:p.category,family:p.family,name:p.name,model:p.model??null,attributes:p.attributes,active:p.active,official_url:p.official_url,dataset:p.dataset??'live',synthetic:!!p.synthetic,...(p.score===undefined?{}:{match_score:p.score})}):null;
@@ -13,6 +14,7 @@ const historyView=(data:any)=>({product_id:data.product_id,days:data.days,curren
 
 export function createMcpServer(db:Db,options:{allowWrites?:boolean;allowDemoFlights?:boolean;forceDemoFlights?:boolean}={}):McpServer{
   const server=new McpServer({name:'PriceMCP',version:'0.1.0'});
+  server.registerTool('list_catalog',{description:'List PriceMCP subject contracts, required identity fields, material comparison terms, source plans, and implementation state.',inputSchema:{},annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}},async()=>response(catalogSummary()));
   server.registerTool('search_price',{description:'Universal PriceMCP search across supported price subjects. Products and flights share a normalized evidence envelope while retaining category-specific subject fields.',inputSchema:{type:z.enum(['product','flight']),query:z.string().optional(),origin:z.string().optional(),destination:z.string().optional(),departure_date:z.string().optional(),return_date:z.string().optional(),cabin:z.enum(['economy','premium_economy','business','first']).optional(),adults:z.number().int().min(1).max(9).optional()}},async(input)=>{
     if(input.type==='product'){if(!input.query?.trim())return response({status:'invalid_request',error:'query is required for product searches'});return response(await searchPrice(db,{type:'product',query:input.query.trim()}));}
     if(!input.origin||!input.destination||!input.departure_date)return response({status:'invalid_request',error:'origin, destination, and departure_date are required for flight searches'});

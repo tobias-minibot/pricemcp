@@ -8,7 +8,9 @@ an input.
 ## Core catalog
 
 The catalog is a set of canonical subject contracts, not a list of search
-keywords.
+keywords. The executable contract is published by the read-only `list_catalog`
+MCP tool and `GET /v1/catalog`; implementation state is explicit for every
+category.
 
 1. **Flights:** itinerary, passengers, cabin, fare brand, bags, stops,
    refund/change rules, complete total, expiry, and booking handoff.
@@ -53,9 +55,9 @@ Its defensible first advantage is decision quality:
 
 ## Source acquisition order
 
-1. Complete an authorized live Amadeus flight path already supported by Core.
-2. Apply for a second flight source (Duffel or Skyscanner partner access) to make
-   comparison real rather than single-provider ranking.
+1. Complete authorized production credentials for the Amadeus flight path.
+2. Complete authorized Duffel access for the implemented second-source adapter,
+   making comparison real rather than single-provider ranking.
 3. Apply for hotel inventory through Expedia Rapid and Booking.com Demand API;
    treat approval and commercial terms as dependencies, not assumed access.
 4. Add non-price destination context only from maintained public sources; never

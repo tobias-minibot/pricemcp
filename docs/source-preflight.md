@@ -30,3 +30,23 @@ Before custom collection, PriceMCP checked maintained primitives and stable sell
   policy, marketplace seller rejection, staleness, or landed-cost uncertainty.
 
 Source evidence is time-sensitive. Collector runs retain method, timestamp, success/failure, match count, captured offers, and errors. The prototype currently assumes U.S. region, USD, no membership, shipping unknown unless explicitly zero, and tax excluded because it is destination-dependent.
+
+## 2026-09-03 travel and refresh preflight
+
+- Duffel's official Flights API is now implemented as a second credential-gated
+  flight source alongside Amadeus. PriceMCP creates an Offer Request, preserves
+  baggage and change/refund conditions when returned, and labels non-live Duffel
+  offers as synthetic. Documentation: https://duffel.com/docs/api/v2/offer-requests
+- The provider fan-out is fail-closed. A failed provider is named in ranking
+  evidence when another succeeds; if all configured providers fail, no fare is
+  emitted. Production and sandbox offers are not ranked against each other.
+- Booking.com Demand API v3.2 and Expedia Rapid Lodging remain the preferred
+  maintained accommodation paths. Both require approved credentials/commercial
+  access, so stay inventory is contract-ready but not represented as live.
+  References: https://developers.booking.com/demand/docs/accommodations/search-for-available-properties
+  and https://developers.expediagroup.com/rapid/lodging/shopping/about-shopping-api
+- At approximately 03:53 America/New_York, the configured Bright Data path was
+  re-run against the four exact AirPods Pro 3 retailer targets. It returned four
+  observations, one canonical product match, and zero collection errors across
+  Walmart, Target, B&H, and Adorama. Currency was USD; shipping, destination tax,
+  and location-dependent delivery remain outside the verified total.
