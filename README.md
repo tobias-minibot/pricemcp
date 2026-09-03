@@ -9,10 +9,28 @@
 <p align="center">
   <a href="https://pricemcp.vercel.app/developer">Live infrastructure</a> ·
   <a href="https://pricemcp.vercel.app">Consumer search</a> ·
+  <a href="./docs/WEBMCP_SUBMISSION.md">WebMCP implementation</a> ·
   <a href="https://youtu.be/TUL5xt7JkJ4">2:08 product demo</a> ·
   <a href="./docs/assets/pricemcp-pitch-deck.pdf">Investor deck</a> ·
   <a href="https://youtu.be/pIZ76XynkgI">2:42 investor pitch</a>
 </p>
+
+## Browser WebMCP
+
+PriceMCP registers three read-only tools with the browser's experimental
+`document.modelContext` API on every page:
+
+- `find_best_price` resolves an exact product or complete itinerary, ranks
+  comparable offers, preserves conditions and source URLs, and renders the
+  result into the page so the person and agent share the same evidence.
+- `inspect_price_evidence` returns the offer-level trust, availability,
+  membership, freshness, timestamp, and provenance behind a canonical product.
+- `run_flight_price_demo` provides an always-runnable, explicitly synthetic and
+  non-bookable workflow so judges can verify WebMCP after live evidence ages.
+
+Both tools pass cancellation signals through to their network requests and mark
+externally sourced seller data with `untrustedContentHint`. They make no purchase
+or durable change. See the [WebMCP implementation and reproduction guide](./docs/WEBMCP_SUBMISSION.md).
 
 ## The pitch
 
