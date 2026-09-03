@@ -243,6 +243,18 @@ than inventing one.
 Incomplete itineraries and ambiguous product queries return candidates or
 missing-field guidance, never an arbitrary variant, route, or travel date.
 
+To verify Duffel without creating a booking, put a `duffel_test_...` token in
+the ignored local `.env` file as `DUFFEL_ACCESS_TOKEN`, leave
+`DUFFEL_ENV=test`, and run:
+
+```bash
+npm run verify:duffel -- JFK LHR 2026-10-10 2026-10-17
+```
+
+The smoke check only creates an Offer Request and prints a sanitized fare
+summary. It refuses live tokens and does not create an order, payment, hold, or
+booking.
+
 ![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
 
 ## TrueForge agent demo
@@ -332,6 +344,7 @@ The web/API server listens on `http://127.0.0.1:3199` by default. Runtime settin
 - Reserved schema: `/v1/fx` explicitly returns `not_implemented` and never data
 - HTTP MCP: `POST /mcp` (stateless Streamable HTTP)
 - stdio MCP: `npm run mcp`
+- Strands companion agent (Python, local Ollama, read-only tools): see [`agents/strands/README.md`](agents/strands/README.md)
 
 Example Codex/Claude-style stdio configuration:
 
@@ -519,3 +532,7 @@ Future categories share this envelope without pretending that products, FX, and 
   "expires_at": "ISO-8601 or null"
 }
 ```
+
+## Hackathon submissions
+
+Every entry clears [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) before the form is touched.

@@ -30,4 +30,13 @@ describe('flight providers',()=>{
     expect(result).toMatchObject({status:'provider_error',offers:[],synthetic:false});
     expect(result.error).toContain('Duffel Offer Requests HTTP 429');
   });
+
+  it('refuses a live Duffel token unless production is explicitly enabled',async()=>{
+    vi.stubEnv('AMADEUS_API_KEY','');vi.stubEnv('AMADEUS_API_SECRET','');vi.stubEnv('DUFFEL_ACCESS_TOKEN','duffel_live_must_not_be_used');vi.stubEnv('DUFFEL_ENV','test');
+    const fetchMock=vi.fn();vi.stubGlobal('fetch',fetchMock);
+    const result=await searchPrice(db(),{type:'flight',origin:'BOS',destination:'LHR',departure_date:'2026-10-10'});
+    expect(result).toMatchObject({status:'provider_error',offers:[],synthetic:false});
+    expect(result.error).toContain('does not match DUFFEL_ENV=test');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
