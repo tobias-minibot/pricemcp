@@ -243,6 +243,18 @@ than inventing one.
 Incomplete itineraries and ambiguous product queries return candidates or
 missing-field guidance, never an arbitrary variant, route, or travel date.
 
+To verify Duffel without creating a booking, put a `duffel_test_...` token in
+the ignored local `.env` file as `DUFFEL_ACCESS_TOKEN`, leave
+`DUFFEL_ENV=test`, and run:
+
+```bash
+npm run verify:duffel -- JFK LHR 2026-10-10 2026-10-17
+```
+
+The smoke check only creates an Offer Request and prints a sanitized fare
+summary. It refuses live tokens and does not create an order, payment, hold, or
+booking.
+
 ![PriceMCP synthetic demo storefront](./docs/assets/pricemcp-home.png)
 
 ## TrueForge agent demo

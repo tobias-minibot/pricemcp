@@ -118,6 +118,10 @@ async function amadeusFlightOffers(subject:FlightPriceSubject):Promise<FlightPro
 async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProviderResult>{
   const token=process.env.DUFFEL_ACCESS_TOKEN||'';
   if(!token)throw new Error('DUFFEL_ACCESS_TOKEN is not configured');
+  const environment=process.env.DUFFEL_ENV||'test';
+  if(environment!=='test'&&environment!=='production')throw new Error('DUFFEL_ENV must be test or production');
+  const expectedPrefix=environment==='production'?'duffel_live_':'duffel_test_';
+  if(!token.startsWith(expectedPrefix))throw new Error(`DUFFEL_ACCESS_TOKEN does not match DUFFEL_ENV=${environment}; refusing the request`);
   const slices=[{origin:subject.origin,destination:subject.destination,departure_date:subject.departure_date}];
   if(subject.return_date)slices.push({origin:subject.destination,destination:subject.origin,departure_date:subject.return_date});
   const response=await fetch('https://api.duffel.com/air/offer_requests?return_offers=true&supplier_timeout=10000',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json','duffel-version':'v2',accept:'application/json'},body:JSON.stringify({data:{slices,passengers:Array.from({length:subject.adults||1},()=>({type:'adult'})),cabin_class:subject.cabin||'economy'}}),signal:AbortSignal.timeout(25_000)});
@@ -132,6 +136,7 @@ async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProv
     return {offer_id:`duffel:${item.id||index}`,dataset:item.live_mode===true?'duffel-live':'duffel-test',synthetic:item.live_mode!==true,provider:{provider_id:String(owner.id||'duffel'),name:String(owner.name||'Duffel airline offer'),trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.total_currency||'USD'),shipping_minor:0,total_minor:amount,basis:'Duffel offer total; baggage and fare conditions disclosed separately'},availability:'available',conditions,match:{canonical:true,confidence:1},source:{method:item.live_mode===true?'duffel_flights_live':'duffel_flights_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://duffel.com/docs/api/v2/offer-requests')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:typeof item.expires_at==='string'?item.expires_at:null};
   }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0).sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
   const synthetic=offers.every((offer:UniversalOffer)=>offer.synthetic);
+  if(environment==='test'&&!synthetic)throw new Error('Duffel returned live inventory while DUFFEL_ENV=test; refusing the result');
   return{provider:'Duffel',offers,dataset:synthetic?'duffel-test':'duffel-live',synthetic};
 }
 

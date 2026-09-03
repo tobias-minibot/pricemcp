@@ -61,7 +61,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const requestedMaxAgeHours=(query:any):number|undefined=>{const value=query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;if(value!==undefined&&(!Number.isFinite(value)||value<0))throw Object.assign(new Error('max_age must be a finite nonnegative number'),{statusCode:400});return value};
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
-  app.get('/companion',(_req,reply)=>reply.type('text/html').send(companionPage()));
+  app.get('/companion',(_req,reply)=>reply.type('text/html').send(companionPage({flightProviderConfigured:Boolean(process.env.DUFFEL_ACCESS_TOKEN||process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)})));
   app.get('/developer',(_req,reply)=>reply.type('text/html').send(developerPage()));
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
