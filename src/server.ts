@@ -11,6 +11,7 @@ import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
 import { catalogSummary } from './subject-catalog.js';
+import { createFixedWindowLimiter } from './request-controls.js';
 
 async function withDiagnosticMcp<T>(db:ReturnType<typeof openDatabase>,options:{allowDemoFlights:boolean;forceDemoFlights?:boolean},run:(client:Client)=>Promise<T>):Promise<T>{
   const [clientTransport,serverTransport]=InMemoryTransport.createLinkedPair();
@@ -50,6 +51,16 @@ function diagnosticTrace(data:any,durationMs:number){
 
 export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const isDemo=process.env.PRICEMCP_DATASET==='pricemcp-demo-v1';if(!isDemo&&!options.readOnly)seed(db);const app=Fastify({logger:true});
+  const publicSearchLimit=Number(process.env.PRICEMCP_PUBLIC_SEARCH_RATE_LIMIT_PER_MINUTE||30);
+  if(!Number.isInteger(publicSearchLimit)||publicSearchLimit<1||publicSearchLimit>100000)throw new Error('PRICEMCP_PUBLIC_SEARCH_RATE_LIMIT_PER_MINUTE must be an integer from 1 to 100000');
+  const takePublicSearch=createFixedWindowLimiter(publicSearchLimit),limitedPaths=new Set(['/v1/mcp/invoke','/v1/mcp/search','/v1/search-price','/v1/flights']);
+  app.addHook('preHandler',async(req,reply)=>{
+    const path=req.url.split('?')[0]!;if(!limitedPaths.has(path))return;
+    const address=process.env.VERCEL==='1'?String(req.headers['x-forwarded-for']||req.ip).split(',')[0]!.trim():req.ip;
+    const limit=takePublicSearch(`${address}:${path}`);
+    reply.header('x-ratelimit-limit',limit.limit).header('x-ratelimit-remaining',limit.remaining);
+    if(!limit.allowed)return reply.header('retry-after',limit.retryAfterSeconds).code(429).send({status:'rate_limited',error:'public search rate limit exceeded',retry_after_seconds:limit.retryAfterSeconds});
+  });
   const apiToken=process.env.PRICEMCP_API_TOKEN;
   if(apiToken)app.addHook('onRequest',async(req,reply)=>{
     const publicReadOnlyDiagnostic=options.readOnly&&(req.url==='/developer'||req.url.startsWith('/v1/mcp/'));

@@ -50,3 +50,29 @@ Source evidence is time-sensitive. Collector runs retain method, timestamp, succ
   observations, one canonical product match, and zero collection errors across
   Walmart, Target, B&H, and Adorama. Currency was USD; shipping, destination tax,
   and location-dependent delivery remain outside the verified total.
+
+## 2026-09-04 retail catalog access preflight
+
+- Best Buy remains the lowest-friction official retailer catalog. Its Products
+  API exposes SKU, price, availability, product attributes, and temporary
+  referral URLs after developer-key registration. The existing adapter is ready
+  for `BESTBUY_API_KEY`; no key is stored.
+  Reference: https://bestbuyapis.github.io/api-documentation/
+- Amazon's current supported catalog route is Creators API. It requires Amazon
+  Associates enrollment and at least 10 qualifying sales in the preceding 30
+  days before API access. It is not a bootstrap source for a new metasearch app.
+  Reference: https://affiliate-program.amazon.com/creatorsapi/docs/en-us/introduction
+- Walmart says approved affiliates can obtain data feeds in its Affiliate Member
+  Center. Its Marketplace and advertising APIs serve separately approved seller
+  or advertising use cases and are not interchangeable with affiliate catalog
+  rights. Reference: https://affiliates.walmart.com/
+- Target routes affiliate publishers through Target Partners/Impact. Catalog
+  feed or Impact API access depends on account and campaign approval; Target's
+  seller APIs are not a substitute.
+- eBay Browse API development starts with developer credentials, but production
+  Buy API access and affiliate URLs require eBay review and, for affiliate use,
+  eBay Partner Network approval.
+  Reference: https://developer.ebay.com/api-docs/buy/static/buy-requirements.html
+- Conclusion: no reviewed source provides anonymous, supplier-authorized,
+  multi-retailer catalog and live-price access. Best Buy is the only immediate
+  self-service API candidate; Amazon, Walmart, Target, and eBay remain gated.
