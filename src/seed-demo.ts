@@ -1,11 +1,31 @@
 import { openDatabase, recordCollection, seed } from './db.js';
 import { demoCatalog, demoDataset, demoMerchants, demoOfficialPrices } from './demo-catalog.js';
 import type { CollectorResult, RawObservation } from './types.js';
+import { basename, resolve } from 'node:path';
 
 const path=process.env.PRICEMCP_DB||'./data/pricemcp-demo.db';
-if(!path.includes('demo'))throw new Error(`Refusing to reset a non-demo database: ${path}`);
+const filename=basename(resolve(path));
+if(!/^pricemcp-demo(?:[-._][a-z0-9-]+)?\.db$/i.test(filename))throw new Error(`Refusing to reset a non-demo database: ${path}`);
 const db=openDatabase(path);
-db.exec('DELETE FROM decision_records; DELETE FROM offers; DELETE FROM price_observations; DELETE FROM collection_runs; DELETE FROM aliases; DELETE FROM products; DELETE FROM merchants; DELETE FROM schema_meta;');
+const nonDemoProducts=Number((db.prepare('SELECT count(*) n FROM products WHERE dataset != ? OR synthetic != 1').get(demoDataset) as any).n);
+if(nonDemoProducts)throw new Error(`Refusing to reset a database containing ${nonDemoProducts} non-demo products: ${path}`);
+
+// Take the write lock before wiping, and disable connection-local FK enforcement only for the
+// reset transaction. Always restore both transaction and FK state if any statement fails.
+let resetting=false;
+db.exec('PRAGMA foreign_keys=OFF;');
+try{
+  db.exec('BEGIN IMMEDIATE;');
+  resetting=true;
+  db.exec('DELETE FROM decision_records; DELETE FROM offers; DELETE FROM price_observations; DELETE FROM collection_runs; DELETE FROM aliases; DELETE FROM products; DELETE FROM merchants; DELETE FROM schema_meta;');
+  db.exec('COMMIT;');
+  resetting=false;
+}catch(error){
+  if(resetting)db.exec('ROLLBACK;');
+  throw error;
+}finally{
+  db.exec('PRAGMA foreign_keys=ON;');
+}
 seed(db,demoCatalog,demoMerchants);
 
 const now=Date.now();
