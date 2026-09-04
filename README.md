@@ -103,8 +103,8 @@ price evidence.
 
 - **5 retailers** normalized in the live AirPods Pro 3 query.
 - **7 read-only MCP tools** exposed with machine-readable schemas.
-- **38 canonical products and 28 offers** in the deployed timestamped snapshot.
-- **67 automated tests**, green CI, Qodo-reviewed pull requests, and a live
+- **38 canonical products and 29 offers** in the deployed timestamped snapshot.
+- **84 automated tests**, green CI, Qodo-reviewed pull requests, and a live
   read-only production boundary.
 - A TrueForge agent that calls PriceMCP, runs an independent sandbox
   calculation, and pauses for human approval before an append-only decision.
@@ -153,6 +153,11 @@ Prices are evidence captured at their displayed timestamps—not continuously
 refreshed inside Vercel—and shipping and destination tax remain unknown unless
 explicitly shown. The separate local judge demo remains synthetic and
 non-purchasable so agent behavior can be tested deterministically.
+
+After a verified local collection, `npm run snapshot:vercel` atomically rebuilds
+the deployable database from current offer projections. The export excludes
+collection history and decision records, checks referential integrity, and
+refuses to replace the snapshot if the result is empty or unsafe.
 
 The live MCP endpoint is `https://pricemcp.vercel.app/mcp`. The separate
 TrueForge judge workflow intentionally uses the local synthetic service so its
