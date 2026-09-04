@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 import { getOffers, searchProducts } from './db.js';
-import { controlledFlightSearch } from './flight-controls.js';
+import { controlledFlightProvider, controlledFlightSearch } from './flight-controls.js';
 
 export type ProductPriceSubject = { type:'product'; query:string };
 export type FlightPriceSubject = {
@@ -198,8 +198,8 @@ async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProv
 
 async function configuredFlightOffers(subject:FlightPriceSubject):Promise<{offers:UniversalOffer[];dataset:string;synthetic:boolean;errors:string[]}|null>{
   const providers:Array<{name:string;run:()=>Promise<FlightProviderResult>}>=[];
-  if(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)providers.push({name:'Amadeus',run:()=>amadeusFlightOffers(subject)});
-  if(process.env.DUFFEL_ACCESS_TOKEN)providers.push({name:'Duffel',run:()=>duffelFlightOffers(subject)});
+  if(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)providers.push({name:'Amadeus',run:()=>controlledFlightProvider('Amadeus',()=>amadeusFlightOffers(subject))});
+  if(process.env.DUFFEL_ACCESS_TOKEN)providers.push({name:'Duffel',run:()=>controlledFlightProvider('Duffel',()=>duffelFlightOffers(subject))});
   if(!providers.length)return null;
   const cacheKey=JSON.stringify({providers:providers.map(provider=>provider.name),amadeus_env:process.env.AMADEUS_ENV||'test',duffel_env:process.env.DUFFEL_ENV||'test',subject});
   const result=await controlledFlightSearch(cacheKey,providers.length,async()=>{
