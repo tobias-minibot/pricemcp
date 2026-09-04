@@ -9,6 +9,35 @@ export type FlightPriceSubject = {
 export type IncompletePriceSubject = { type:'incomplete'; intent:'flight'; query:string; missing:string[] };
 export type PriceSearchSubject = ProductPriceSubject | FlightPriceSubject | IncompletePriceSubject;
 
+export type FlightOfferDetails = {
+  comparison_key:string;
+  cabin:string;
+  fare_brands:string[];
+  baggage:string[];
+  base_minor:number|null;
+  base_currency:string|null;
+  tax_minor:number|null;
+  tax_currency:string|null;
+  emissions_kg:number|null;
+  total_duration_minutes:number|null;
+  change_before_departure:{allowed:boolean|null;penalty_minor:number|null;currency:string|null};
+  refund_before_departure:{allowed:boolean|null;penalty_minor:number|null;currency:string|null};
+  slices:Array<{
+    origin:{iata_code:string|null;name:string|null;city_name:string|null};
+    destination:{iata_code:string|null;name:string|null;city_name:string|null};
+    duration_minutes:number|null;
+    stops:number;
+    fare_brand_name:string|null;
+    segments:Array<{
+      departing_at:string|null;arriving_at:string|null;duration_minutes:number|null;
+      origin:{iata_code:string|null;name:string|null;terminal:string|null};
+      destination:{iata_code:string|null;name:string|null;terminal:string|null};
+      marketing_carrier:string|null;operating_carrier:string|null;flight_number:string|null;
+      aircraft:string|null;cabin:string|null;fare_basis_code:string|null;
+    }>;
+  }>;
+};
+
 export type UniversalOffer = {
   offer_id:string;
   dataset:string;
@@ -22,6 +51,7 @@ export type UniversalOffer = {
   observed_at:string;
   freshness:{ age_seconds:number; status:'fresh'|'recent'|'aging'|'stale' };
   expires_at:string|null;
+  flight?:FlightOfferDetails;
 };
 
 export type PriceSearchResult = {
@@ -49,6 +79,17 @@ const cityCode=(value:string):string=>{
 const safeSourceUrl=(value:unknown):string|null=>{
   if(typeof value!=='string'||!value)return null;
   try{const url=new URL(value);return url.protocol==='https:'?url.toString():null}catch{return null}
+};
+
+const amountMinor=(value:unknown):number|null=>{const parsed=Number(value);return Number.isFinite(parsed)?Math.round(parsed*100):null};
+const durationMinutes=(value:unknown):number|null=>{if(typeof value!=='string')return null;const match=value.match(/^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?$/);if(!match)return null;return Number(match[1]||0)*1440+Number(match[2]||0)*60+Number(match[3]||0)};
+const airport=(value:any)=>({iata_code:typeof value?.iata_code==='string'?value.iata_code:null,name:typeof value?.name==='string'?value.name:null,city_name:typeof value?.city_name==='string'?value.city_name:null});
+const fareRule=(value:any)=>({allowed:typeof value?.allowed==='boolean'?value.allowed:null,penalty_minor:amountMinor(value?.penalty_amount),currency:typeof value?.penalty_currency==='string'?value.penalty_currency:null});
+const fareRuleLabel=(name:string,rule:ReturnType<typeof fareRule>):string=>{
+  if(rule.allowed===false)return name==='changes'?'changes not allowed before departure':'non-refundable before departure';
+  if(rule.allowed!==true)return `${name.slice(0,-1)} rules unknown`;
+  const penalty=rule.penalty_minor===null?'penalty unknown':rule.penalty_minor===0?'no stated penalty':`${rule.currency||''} ${(rule.penalty_minor/100).toFixed(2)} penalty`.trim();
+  return `${name} allowed before departure; ${penalty}`;
 };
 
 export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearchSubject{
@@ -128,13 +169,21 @@ async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProv
   if(!response.ok)throw new Error(`Duffel Offer Requests HTTP ${response.status}`);
   const payload=await response.json() as any,items=Array.isArray(payload?.data?.offers)?payload.data.offers:[];
   const offers=items.map((item:any,index:number):UniversalOffer=>{
-    const amount=Math.round(Number(item.total_amount||0)*100),owner=item.owner||{},segments=(item.slices||[]).flatMap((slice:any)=>slice.segments||[]);
-    const sliceCount=Math.max(1,(item.slices||[]).length),stops=Math.max(0,segments.length-sliceCount);
-    const bags=(item.passengers||[]).flatMap((passenger:any)=>passenger.baggages||[]).map((bag:any)=>`${bag.quantity||1} ${String(bag.type||'bag').replace(/_/g,' ')}`);
-    const changeable=item.conditions?.change_before_departure?.allowed,refundable=item.conditions?.refund_before_departure?.allowed;
-    const conditions=[`${stops} total stop(s)`,String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`,...(bags.length?[`included: ${[...new Set(bags)].join(', ')}`]:['baggage inclusion unknown']),changeable===true?'changes allowed before departure':changeable===false?'changes not allowed before departure':'change rules unknown',refundable===true?'refund allowed before departure':refundable===false?'non-refundable before departure':'refund rules unknown'];
-    return {offer_id:`duffel:${item.id||index}`,dataset:item.live_mode===true?'duffel-live':'duffel-test',synthetic:item.live_mode!==true,provider:{provider_id:String(owner.id||'duffel'),name:String(owner.name||'Duffel airline offer'),trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.total_currency||'USD'),shipping_minor:0,total_minor:amount,basis:'Duffel offer total; baggage and fare conditions disclosed separately'},availability:'available',conditions,match:{canonical:true,confidence:1},source:{method:item.live_mode===true?'duffel_flights_live':'duffel_flights_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://duffel.com/docs/api/v2/offer-requests')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:typeof item.expires_at==='string'?item.expires_at:null};
-  }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0).sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor);
+    const amount=Math.round(Number(item.total_amount||0)*100),owner=item.owner||{},rawSlices=Array.isArray(item.slices)?item.slices:[];
+    const changeRule=fareRule(item.conditions?.change_before_departure),refundRule=fareRule(item.conditions?.refund_before_departure);
+    const normalizedSlices:FlightOfferDetails['slices']=rawSlices.map((slice:any)=>{
+      const rawSegments=Array.isArray(slice.segments)?slice.segments:[];
+      return{origin:airport(slice.origin),destination:airport(slice.destination),duration_minutes:durationMinutes(slice.duration),stops:Math.max(0,rawSegments.length-1+rawSegments.reduce((total:number,segment:any)=>total+(Array.isArray(segment.stops)?segment.stops.length:0),0)),fare_brand_name:typeof slice.fare_brand_name==='string'?slice.fare_brand_name:null,segments:rawSegments.map((segment:any)=>{const passenger=Array.isArray(segment.passengers)?segment.passengers[0]:null;return{departing_at:typeof segment.departing_at==='string'?segment.departing_at:null,arriving_at:typeof segment.arriving_at==='string'?segment.arriving_at:null,duration_minutes:durationMinutes(segment.duration),origin:{...airport(segment.origin),terminal:typeof segment.origin_terminal==='string'?segment.origin_terminal:null},destination:{...airport(segment.destination),terminal:typeof segment.destination_terminal==='string'?segment.destination_terminal:null},marketing_carrier:typeof segment.marketing_carrier?.name==='string'?segment.marketing_carrier.name:null,operating_carrier:typeof segment.operating_carrier?.name==='string'?segment.operating_carrier.name:null,flight_number:[segment.marketing_carrier?.iata_code,segment.marketing_carrier_flight_number].filter(Boolean).join(' ')||null,aircraft:typeof segment.aircraft?.name==='string'?segment.aircraft.name:null,cabin:typeof passenger?.cabin_class_marketing_name==='string'?passenger.cabin_class_marketing_name:typeof passenger?.cabin_class==='string'?passenger.cabin_class:null,fare_basis_code:typeof passenger?.fare_basis_code==='string'?passenger.fare_basis_code:null}})};
+    });
+    const segments=rawSlices.flatMap((slice:any)=>Array.isArray(slice.segments)?slice.segments:[]),stops=normalizedSlices.reduce((total,slice)=>total+slice.stops,0);
+    const bags:string[]=[...new Set<string>(segments.flatMap((segment:any)=>Array.isArray(segment.passengers)?segment.passengers:[]).flatMap((passenger:any)=>Array.isArray(passenger.baggages)?passenger.baggages:[]).map((bag:any)=>`${bag.quantity||1} ${String(bag.type||'bag').replace(/_/g,' ')}`))];
+    const fareBrands=[...new Set(normalizedSlices.map(slice=>slice.fare_brand_name).filter((value):value is string=>Boolean(value)))];
+    const comparisonKey=[String(owner.id||''),...rawSlices.map((slice:any)=>String(slice.comparison_key||'')),fareBrands.join('/')].filter(Boolean).join('|')||segments.map((segment:any)=>[segment.marketing_carrier?.iata_code,segment.marketing_carrier_flight_number,segment.departing_at].filter(Boolean).join(':')).join('|')||String(item.id||index);
+    const totalDuration=normalizedSlices.every(slice=>slice.duration_minutes!==null)?normalizedSlices.reduce((total,slice)=>total+(slice.duration_minutes||0),0):null;
+    const conditions=[`${stops} total stop(s)`,fareBrands.length?fareBrands.join(' / '):String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`,...(bags.length?[`included: ${bags.join(', ')}`]:['baggage inclusion unknown']),fareRuleLabel('changes',changeRule),fareRuleLabel('refunds',refundRule)];
+    const flight:FlightOfferDetails={comparison_key:comparisonKey,cabin:String(subject.cabin||'economy'),fare_brands:fareBrands,baggage:bags,base_minor:amountMinor(item.base_amount),base_currency:typeof item.base_currency==='string'?item.base_currency:null,tax_minor:amountMinor(item.tax_amount),tax_currency:typeof item.tax_currency==='string'?item.tax_currency:null,emissions_kg:Number.isFinite(Number(item.total_emissions_kg))?Number(item.total_emissions_kg):null,total_duration_minutes:totalDuration,change_before_departure:changeRule,refund_before_departure:refundRule,slices:normalizedSlices};
+    return {offer_id:`duffel:${item.id||index}`,dataset:item.live_mode===true?'duffel-live':'duffel-test',synthetic:item.live_mode!==true,provider:{provider_id:String(owner.id||'duffel'),name:String(owner.name||'Duffel airline offer'),trusted:true,trust_score:null},quote:{amount_minor:amount,currency:String(item.total_currency||'USD'),shipping_minor:0,total_minor:amount,basis:'Duffel offer total including provider-reported base fare and taxes; optional services may cost extra'},availability:'available',conditions,match:{canonical:true,confidence:1},source:{method:item.live_mode===true?'duffel_flights_live':'duffel_flights_test',source_product_id:String(item.id||index),url:safeSourceUrl('https://duffel.com/docs/api/v2/offer-requests')},observed_at:new Date().toISOString(),freshness:{age_seconds:0,status:'fresh'},expires_at:typeof item.expires_at==='string'?item.expires_at:null,flight};
+  }).filter((offer:UniversalOffer)=>offer.quote.total_minor>0).sort((a:UniversalOffer,b:UniversalOffer)=>a.quote.total_minor-b.quote.total_minor).slice(0,50);
   const synthetic=offers.every((offer:UniversalOffer)=>offer.synthetic);
   if(environment==='test'&&!synthetic)throw new Error('Duffel returned live inventory while DUFFEL_ENV=test; refusing the result');
   return{provider:'Duffel',offers,dataset:synthetic?'duffel-test':'duffel-live',synthetic};
