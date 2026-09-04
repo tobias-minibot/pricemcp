@@ -182,7 +182,7 @@ async function duffelFlightOffers(subject:FlightPriceSubject):Promise<FlightProv
       segment.origin?.iata_code,segment.destination?.iata_code,segment.marketing_carrier?.iata_code,
       segment.marketing_carrier_flight_number,segment.departing_at,segment.arriving_at
     ].filter(Boolean).join(':')).filter(Boolean).join('|');
-    const comparisonKey=[String(owner.id||''),itineraryKey,fareBrands.join('/'),String(subject.cabin||'economy')].filter(Boolean).join('|')||String(item.id||index);
+    const comparisonKey=[String(owner.id||''),itineraryKey,fareBrands.join('/'),String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`].filter(Boolean).join('|')||String(item.id||index);
     const totalDuration=normalizedSlices.every(slice=>slice.duration_minutes!==null)?normalizedSlices.reduce((total,slice)=>total+(slice.duration_minutes||0),0):null;
     const conditions=[`${stops} total stop(s)`,fareBrands.length?fareBrands.join(' / '):String(subject.cabin||'economy'),`${subject.adults||1} adult(s)`,...(bags.length?[`included: ${bags.join(', ')}`]:['baggage inclusion unknown']),fareRuleLabel('changes',changeRule),fareRuleLabel('refunds',refundRule)];
     const emissionsValue=item.total_emissions_kg,emissions=emissionsValue===null||emissionsValue===undefined||emissionsValue===''?null:Number(emissionsValue);

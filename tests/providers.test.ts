@@ -21,6 +21,7 @@ describe('flight providers',()=>{
     expect(result.best_offer?.conditions).toEqual(expect.arrayContaining(['1 total stop(s)','included: 1 checked, 1 carry on','changes allowed before departure; USD 40.00 penalty','non-refundable before departure']));
     expect(result.best_offer?.flight).toMatchObject({fare_brands:['Basic'],baggage:['1 checked','1 carry on'],base_minor:50000,base_currency:'USD',tax_minor:9940,tax_currency:'USD',emissions_kg:321,total_duration_minutes:1080,change_before_departure:{allowed:true,penalty_minor:4000,currency:'USD'},refund_before_departure:{allowed:false,penalty_minor:null,currency:null}});
     expect(result.best_offer?.flight?.comparison_key).toContain('IAD:LHR:TA:101:2026-09-18T18:00:00:2026-09-19T06:00:00');
+    expect(result.best_offer?.flight?.comparison_key).toContain('1 adult(s)');
     expect(result.best_offer?.flight?.slices).toEqual(expect.arrayContaining([expect.objectContaining({origin:expect.objectContaining({iata_code:'IAD'}),destination:expect.objectContaining({iata_code:'BER'}),duration_minutes:555,stops:1,segments:expect.arrayContaining([expect.objectContaining({flight_number:'TA 101',aircraft:'A350',cabin:'Economy',fare_basis_code:'YTEST'})])})]));
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/air/offer_requests'),expect.objectContaining({method:'POST',headers:expect.objectContaining({'duffel-version':'v2'})}));
     const request=JSON.parse(String(fetchMock.mock.calls[0]![1]!.body));
