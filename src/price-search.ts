@@ -1,5 +1,6 @@
 import type { Db } from './db.js';
 import { getOffers, searchProducts } from './db.js';
+import { controlledFlightSearch } from './flight-controls.js';
 
 export type ProductPriceSubject = { type:'product'; query:string };
 export type FlightPriceSubject = {
@@ -200,12 +201,16 @@ async function configuredFlightOffers(subject:FlightPriceSubject):Promise<{offer
   if(process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)providers.push({name:'Amadeus',run:()=>amadeusFlightOffers(subject)});
   if(process.env.DUFFEL_ACCESS_TOKEN)providers.push({name:'Duffel',run:()=>duffelFlightOffers(subject)});
   if(!providers.length)return null;
-  const settled=await Promise.allSettled(providers.map(provider=>provider.run())),results:FlightProviderResult[]=[],errors:string[]=[];
-  settled.forEach((item,index)=>item.status==='fulfilled'?results.push(item.value):errors.push(`${providers[index]!.name}: ${item.reason instanceof Error?item.reason.message:String(item.reason)}`));
-  if(!results.length)throw new Error(errors.join('; '));
-  const all=results.flatMap(result=>result.offers),hasLive=all.some(offer=>!offer.synthetic),eligible=hasLive?all.filter(offer=>!offer.synthetic):all;
-  eligible.sort((a,b)=>a.quote.total_minor-b.quote.total_minor);
-  return{offers:eligible,dataset:results.length>1?'multi-source':results[0]!.dataset,synthetic:!hasLive,errors};
+  const cacheKey=JSON.stringify({providers:providers.map(provider=>provider.name),amadeus_env:process.env.AMADEUS_ENV||'test',duffel_env:process.env.DUFFEL_ENV||'test',subject});
+  const result=await controlledFlightSearch(cacheKey,providers.length,async()=>{
+    const settled=await Promise.allSettled(providers.map(provider=>provider.run())),results:FlightProviderResult[]=[],errors:string[]=[];
+    settled.forEach((item,index)=>item.status==='fulfilled'?results.push(item.value):errors.push(`${providers[index]!.name}: ${item.reason instanceof Error?item.reason.message:String(item.reason)}`));
+    if(!results.length)throw new Error(errors.join('; '));
+    const all=results.flatMap(result=>result.offers),hasLive=all.some(offer=>!offer.synthetic),eligible=hasLive?all.filter(offer=>!offer.synthetic):all;
+    eligible.sort((a,b)=>a.quote.total_minor-b.quote.total_minor);
+    return{offers:eligible,dataset:results.length>1?'multi-source':results[0]!.dataset,synthetic:!hasLive,errors};
+  });
+  return{...result,offers:result.offers.map(offer=>{const age=Math.max(0,Math.floor((Date.now()-Date.parse(offer.observed_at))/1000));return{...offer,freshness:{age_seconds:age,status:age<300?'fresh':age<3600?'recent':age<21600?'aging':'stale'}}})};
 }
 
 export const flightProviderInternals={duffelFlightOffers,amadeusFlightOffers,configuredFlightOffers};
