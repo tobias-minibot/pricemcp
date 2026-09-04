@@ -259,11 +259,15 @@ Public search bridges are limited per client and route. Configured flight
 providers also sit behind a short-lived exact-query cache, identical-request
 coalescing, a concurrency cap, and an hourly provider-call budget. Defaults are
 30 public searches per minute, a 60-second flight cache, four simultaneous
-provider searches, and 120 provider calls per warm process per hour. Configure
+provider searches, 120 provider calls per warm process per hour, and a
+per-provider circuit that pauses calls for 60 seconds after three consecutive
+failures. Configure
 these with `PRICEMCP_PUBLIC_SEARCH_RATE_LIMIT_PER_MINUTE`,
 `PRICEMCP_FLIGHT_CACHE_TTL_SECONDS`,
 `PRICEMCP_FLIGHT_MAX_CONCURRENT_SEARCHES`, and
-`PRICEMCP_FLIGHT_PROVIDER_CALLS_PER_HOUR`. The in-process controls are
+`PRICEMCP_FLIGHT_PROVIDER_CALLS_PER_HOUR`,
+`PRICEMCP_FLIGHT_PROVIDER_FAILURE_THRESHOLD`, and
+`PRICEMCP_FLIGHT_PROVIDER_CIRCUIT_COOLDOWN_SECONDS`. The in-process controls are
 defense-in-depth for the current deployment; a shared store is required before
 treating them as a distributed quota across multiple serverless instances.
 

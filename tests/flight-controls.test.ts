@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { controlledFlightSearch, resetFlightControlsForTests } from '../src/flight-controls.js';
+import { controlledFlightProvider, controlledFlightSearch, resetFlightControlsForTests } from '../src/flight-controls.js';
 import { openDatabase, seed } from '../src/db.js';
 import { buildApp } from '../src/server.js';
 
@@ -28,6 +28,43 @@ describe('flight provider request controls',()=>{
     release();
     await expect(Promise.all([first,duplicate])).resolves.toEqual(['ok','ok']);
     expect(calls).toBe(1);
+  });
+
+  it('opens a provider circuit after consecutive failures and recovers after cooldown',async()=>{
+    vi.stubEnv('PRICEMCP_FLIGHT_PROVIDER_FAILURE_THRESHOLD','2');
+    vi.stubEnv('PRICEMCP_FLIGHT_PROVIDER_CIRCUIT_COOLDOWN_SECONDS','10');
+    vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-04T16:00:00Z'));
+    let calls=0;
+    const fail=()=>controlledFlightProvider('Duffel',async()=>{calls++;throw new Error('upstream unavailable')});
+    await expect(fail()).rejects.toThrow('upstream unavailable');
+    await expect(fail()).rejects.toThrow('upstream unavailable');
+    await expect(controlledFlightProvider('Duffel',async()=>{calls++;return 'wrong'})).rejects.toThrow(/circuit open.*retry after 10 seconds/i);
+    expect(calls).toBe(2);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(controlledFlightProvider('Duffel',async()=>{calls++;return 'recovered'})).resolves.toBe('recovered');
+    expect(calls).toBe(3);
+    vi.useRealTimers();
+  });
+
+  it('tracks provider circuits independently',async()=>{
+    vi.stubEnv('PRICEMCP_FLIGHT_PROVIDER_FAILURE_THRESHOLD','1');
+    await expect(controlledFlightProvider('Amadeus',async()=>{throw new Error('failed')})).rejects.toThrow('failed');
+    await expect(controlledFlightProvider('Duffel',async()=>'ok')).resolves.toBe('ok');
+  });
+
+  it('reopens immediately when the first call after cooldown still fails',async()=>{
+    vi.stubEnv('PRICEMCP_FLIGHT_PROVIDER_FAILURE_THRESHOLD','2');
+    vi.stubEnv('PRICEMCP_FLIGHT_PROVIDER_CIRCUIT_COOLDOWN_SECONDS','10');
+    vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-04T16:00:00Z'));
+    let calls=0;
+    const fail=()=>controlledFlightProvider('Duffel',async()=>{calls++;throw new Error('still unavailable')});
+    await expect(fail()).rejects.toThrow('still unavailable');
+    await expect(fail()).rejects.toThrow('still unavailable');
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(fail()).rejects.toThrow('still unavailable');
+    await expect(fail()).rejects.toThrow(/circuit open/i);
+    expect(calls).toBe(3);
+    vi.useRealTimers();
   });
 
   it('rate limits public search bridges without blocking health checks',async()=>{
