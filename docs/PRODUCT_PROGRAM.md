@@ -60,6 +60,9 @@ Its defensible first advantage is decision quality:
    making comparison real rather than single-provider ranking.
 3. Apply for hotel inventory through Expedia Rapid and Booking.com Demand API;
    treat approval and commercial terms as dependencies, not assumed access.
+   The provider-ready application brief, unresolved applicant fields, and
+   search/handoff design are tracked in
+   [`STAY_PARTNER_READINESS.md`](./STAY_PARTNER_READINESS.md).
 4. Add non-price destination context only from maintained public sources; never
    present weather or editorial content as price evidence.
 5. Keep Bright Data restricted to retailer evidence where direct or supported
