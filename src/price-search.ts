@@ -104,7 +104,12 @@ export function parseNaturalPriceQuery(query:string,_now=new Date()):PriceSearch
     if(missing.length)return{type:'incomplete',intent:'flight',query,missing};
     return {type:'flight',origin:origin!,destination:destination!,departure_date:dates[0]!,...(dates[1]?{return_date:dates[1]}:{}),cabin:'economy',adults:1};
   }
-  return {type:'product',query:query.trim()};
+  const productQuery=query.trim()
+    .replace(/^\s*(?:please\s+)?(?:i\s+(?:need|want)|find\s+me|show\s+me|help\s+me\s+(?:buy|find)|compare|what(?:'s|\s+is)\s+the\s+(?:best\s+)?price\s+(?:for|of)|best\s+price\s+(?:for|of))\s+(?:(?:a|an|the)\s+)?/i,'')
+    .replace(/\s+(?:under|below|less\s+than|up\s+to|max(?:imum)?)\s*\$?[0-9]+(?:\.[0-9]{1,2})?\b.*$/i,'')
+    .replace(/\s+(?:for\s+me|please|right\s+now|today)\s*$/i,'')
+    .trim();
+  return {type:'product',query:productQuery||query.trim()};
 }
 
 const productOffer=(offer:any):UniversalOffer=>({
