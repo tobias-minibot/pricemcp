@@ -106,6 +106,9 @@ price evidence.
 - **38 canonical products and 29 offers** in the deployed timestamped snapshot.
 - **87 automated tests**, green CI, Qodo-reviewed pull requests, and a live
   read-only production boundary.
+- A twice-daily no-cost snapshot refresh for the direct Apple, Best Buy, and
+  curated Amazon collectors, with integrity, freshness, and secret-leak gates
+  before publication.
 - A TrueForge agent that calls PriceMCP, runs an independent sandbox
   calculation, and pauses for human approval before an append-only decision.
 
