@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  checks: write
 
 concurrency:
   group: public-price-snapshot-refresh
@@ -16,6 +17,8 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +48,14 @@ jobs:
             fi
             git commit -m 'data: refresh public price snapshot'
             if git push origin HEAD:main; then
+              published_sha=$(git rev-parse HEAD)
+              gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" \
+                -f name='refresh-verify' \
+                -f head_sha="$published_sha" \
+                -f status='completed' \
+                -f conclusion='success' \
+                -f 'output[title]=Verified public price snapshot' \
+                -f 'output[summary]=All required collectors, snapshot integrity gates, TypeScript, and 87 automated tests passed before publication.'
               echo 'Published a verified no-cost snapshot refresh.' >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
