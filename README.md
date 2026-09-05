@@ -104,7 +104,7 @@ price evidence.
 - **5 retailers** normalized in the live AirPods Pro 3 query.
 - **7 read-only MCP tools** exposed with machine-readable schemas.
 - **38 canonical products and 29 offers** in the deployed timestamped snapshot.
-- **84 automated tests**, green CI, Qodo-reviewed pull requests, and a live
+- **86 automated tests**, green CI, Qodo-reviewed pull requests, and a live
   read-only production boundary.
 - A TrueForge agent that calls PriceMCP, runs an independent sandbox
   calculation, and pauses for human approval before an append-only decision.
@@ -217,6 +217,13 @@ The mobile-first homepage accepts either an exact product request such as
 `Flight Washington to Berlin 2026-09-18 2026-09-25`. Results explain
 the winner using price, provider trust, availability, freshness, and product or
 itinerary match—never advertising or affiliate economics.
+
+Exact product pages are decision checkpoints rather than static result pages.
+They separate known facts from checkout unknowns, adapt the offer evidence for
+mobile screens, save a choice privately in the browser, list saved decisions at
+`/decisions`, and re-run the read-only MCP search before the person acts. A
+saved result remains history when fresh evidence disappears; it is never silently
+presented as a current recommendation.
 
 Products and flights share the same compact quote envelope while retaining their
 category-specific subject fields:

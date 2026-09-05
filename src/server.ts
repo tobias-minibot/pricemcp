@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, history, health, recordCollection, listFeaturedProducts } from './db.js';
 import { createMcpServer } from './mcp.js';
-import { companionPage, developerPage, homePage, productPage, statusPage } from './web.js';
+import { companionPage, decisionsPage, developerPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
@@ -73,6 +73,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
   app.get('/companion',(_req,reply)=>reply.type('text/html').send(companionPage({flightProviderConfigured:Boolean(process.env.DUFFEL_ACCESS_TOKEN||process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)})));
+  app.get('/decisions',(_req,reply)=>reply.type('text/html').send(decisionsPage()));
   app.get('/developer',(_req,reply)=>reply.type('text/html').send(developerPage()));
   app.get('/products/:id',(req,reply)=>{const id=(req.params as any).id,p=getProduct(db,id);if(!p)return reply.code(404).type('text/html').send(homePage([],id));reply.type('text/html').send(productPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)))});
   app.get('/status',(_req,reply)=>reply.type('text/html').send(statusPage(health(db))));
