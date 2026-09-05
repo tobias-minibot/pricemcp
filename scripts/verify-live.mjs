@@ -23,12 +23,19 @@ async function readJson(path, init = {}) {
   return response.json();
 }
 
+async function readText(path) {
+  const response = await timedFetch(new URL(path, baseUrl));
+  assert(response.ok, `${path} returned HTTP ${response.status}`);
+  return response.text();
+}
+
 const health = await readJson('/internal/health');
 assert(health.status === 'ok', 'health status is not ok');
 assert(health.dataset === 'live', `expected live dataset, got ${health.dataset}`);
 assert(health.synthetic === false, 'production health is marked synthetic');
 assert(health.counts?.products > 0, 'production snapshot has no products');
 assert(health.counts?.current_offers > 0, 'production snapshot has no offers');
+assert(health.counts?.fresh_available_offers > 0, 'production snapshot has no fresh available offers');
 const lastRefreshMs = Date.parse(health.last_refresh);
 assert(Number.isFinite(lastRefreshMs), 'production snapshot has no valid last_refresh timestamp');
 const snapshotAgeHours = Math.max(1, Math.ceil((Date.now() - lastRefreshMs) / 3_600_000) + 1);
@@ -43,6 +50,23 @@ assert(search.dataset === 'live' && search.synthetic === false, 'search lost liv
 assert(search.best_offer?.dataset === 'live' && search.best_offer?.synthetic === false, 'best offer lost live provenance');
 assert(search.best_offer?.source?.url, 'best offer has no evidence URL');
 assert(search.best_offer?.observed_at, 'best offer has no observation timestamp');
+
+const home = await readText('/');
+const firstDecisionAt = home.indexOf('Start with a real decision');
+const infrastructureAt = home.indexOf('Live infrastructure feed');
+assert(firstDecisionAt >= 0, 'homepage is missing the first-decision journey');
+assert(home.includes('href="/products/apple-airpods-pro-3"'), 'homepage has no working comparison entry point');
+assert(home.includes('href="/decisions"'), 'homepage has no saved-decision return path');
+assert(infrastructureAt < 0 || firstDecisionAt < infrastructureAt, 'homepage shows infrastructure before the user journey');
+
+const productPath = `/products/${search.subject.product_id}`;
+const productPage = await readText(productPath);
+assert(productPage.includes('Save this decision'), 'product page is missing save controls');
+assert(productPage.includes('Recheck evidence'), 'product page is missing recheck controls');
+const handoffMatch = productPage.match(/id="winner-source"[^>]*href="([^"]+)"/);
+assert(handoffMatch, 'fresh recommended offer has no retailer handoff');
+const handoffUrl = new URL(handoffMatch[1]);
+assert(handoffUrl.protocol === 'https:', 'retailer handoff is not HTTPS');
 
 const client = new Client({ name: 'pricemcp-live-smoke', version: '1.0.0' });
 const transport = new StreamableHTTPClientTransport(new URL('/mcp', baseUrl), { fetch: timedFetch });
@@ -79,6 +103,8 @@ try {
     best_provider: search.best_offer.provider.name,
     best_total_minor: search.best_offer.quote.total_minor,
     observed_at: search.best_offer.observed_at,
+    consumer_journey: 'compare → save → recheck → HTTPS retailer handoff',
+    retailer_handoff: handoffUrl.origin,
     mcp_tools: toolNames,
     read_only_boundary: 'record_decision absent',
     snapshot_contract: 'timestamped read-only evidence; freshness is reported, not required',
