@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { execFileSync } from 'node:child_process';
 
 const baseUrl = new URL(process.env.PRICEMCP_LIVE_URL || 'https://pricemcp.vercel.app');
 const requestTimeoutMs = 20_000;
@@ -78,6 +79,12 @@ const watchlistPage = await readText('/decisions');
 assert(watchlistPage.includes('Your decision watchlist'), 'saved decisions are not rendered as a watchlist');
 assert(watchlistPage.includes('Recheck all'), 'watchlist has no batch recheck');
 assert(watchlistPage.includes("fetch('/v1/mcp/search'"), 'watchlist is not wired to current evidence');
+
+execFileSync(process.execPath, ['scripts/verify-browser-funnel.mjs'], {
+  cwd: process.cwd(),
+  env: { ...process.env, PRICEMCP_LIVE_URL: baseUrl.href },
+  stdio: 'inherit',
+});
 
 const client = new Client({ name: 'pricemcp-live-smoke', version: '1.0.0' });
 const transport = new StreamableHTTPClientTransport(new URL('/mcp', baseUrl), { fetch: timedFetch });
