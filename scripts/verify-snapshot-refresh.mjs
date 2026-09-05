@@ -9,7 +9,7 @@ const source = new DatabaseSync('data/pricemcp.db', { readOnly: true });
 const collectors = Object.fromEntries(requiredSources.map(name => [name, scalar(source, `
   WITH current_run AS (
     SELECT id, status FROM collection_runs
-    WHERE source = ? AND started_at >= ?
+    WHERE source = ? AND julianday(started_at) >= julianday(?)
     ORDER BY id DESC LIMIT 1
   )
   SELECT count(*) value
