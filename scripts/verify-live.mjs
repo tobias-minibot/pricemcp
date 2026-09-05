@@ -55,7 +55,8 @@ const home = await readText('/');
 const firstDecisionAt = home.indexOf('Start with a real decision');
 const infrastructureAt = home.indexOf('Live infrastructure feed');
 assert(firstDecisionAt >= 0, 'homepage is missing the first-decision journey');
-assert(home.includes('href="/products/apple-airpods-pro-3"'), 'homepage has no working comparison entry point');
+assert(home.includes('href="/companion?q=I%20need%20AirPods%20Pro%203%20under%20%24300"'), 'homepage has no Companion entry point');
+assert(home.includes('href="/products/apple-airpods-pro-3"'), 'homepage has no working evidence entry point');
 assert(home.includes('href="/decisions"'), 'homepage has no saved-decision return path');
 assert(infrastructureAt < 0 || firstDecisionAt < infrastructureAt, 'homepage shows infrastructure before the user journey');
 
@@ -67,6 +68,16 @@ const handoffMatch = productPage.match(/id="winner-source"[^>]*href="([^"]+)"/);
 assert(handoffMatch, 'fresh recommended offer has no retailer handoff');
 const handoffUrl = new URL(handoffMatch[1]);
 assert(handoffUrl.protocol === 'https:', 'retailer handoff is not HTTPS');
+
+const companionPage = await readText('/companion?q=I%20need%20AirPods%20Pro%203%20under%20%24300');
+assert(companionPage.includes('Tell me what you’re buying.'), 'Companion is not product-first');
+assert(companionPage.includes("fetch('/v1/mcp/search'"), 'Companion is not wired to live MCP search');
+assert(companionPage.includes("url.protocol==='https:'"), 'Companion lacks an HTTPS handoff boundary');
+assert(companionPage.includes('/companion/flights'), 'Companion lost the disclosed flight-lab boundary');
+const watchlistPage = await readText('/decisions');
+assert(watchlistPage.includes('Your decision watchlist'), 'saved decisions are not rendered as a watchlist');
+assert(watchlistPage.includes('Recheck all'), 'watchlist has no batch recheck');
+assert(watchlistPage.includes("fetch('/v1/mcp/search'"), 'watchlist is not wired to current evidence');
 
 const client = new Client({ name: 'pricemcp-live-smoke', version: '1.0.0' });
 const transport = new StreamableHTTPClientTransport(new URL('/mcp', baseUrl), { fetch: timedFetch });
@@ -103,7 +114,7 @@ try {
     best_provider: search.best_offer.provider.name,
     best_total_minor: search.best_offer.quote.total_minor,
     observed_at: search.best_offer.observed_at,
-    consumer_journey: 'compare → save → recheck → HTTPS retailer handoff',
+    consumer_journey: 'ask Companion → compare → save → watch/recheck → HTTPS retailer handoff',
     retailer_handoff: handoffUrl.origin,
     mcp_tools: toolNames,
     read_only_boundary: 'record_decision absent',
