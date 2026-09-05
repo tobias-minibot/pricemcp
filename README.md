@@ -104,7 +104,7 @@ price evidence.
 - **5 retailers** normalized in the live AirPods Pro 3 query.
 - **7 read-only MCP tools** exposed with machine-readable schemas.
 - **38 canonical products and 29 offers** in the deployed timestamped snapshot.
-- **86 automated tests**, green CI, Qodo-reviewed pull requests, and a live
+- **87 automated tests**, green CI, Qodo-reviewed pull requests, and a live
   read-only production boundary.
 - A TrueForge agent that calls PriceMCP, runs an independent sandbox
   calculation, and pauses for human approval before an append-only decision.
