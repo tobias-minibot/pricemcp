@@ -147,6 +147,10 @@ try {
     searchAction: document.querySelector('.ca-search')?.getAttribute('action'),
     companionLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/companion?q=')).length,
     evidenceLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/products/')).length,
+    catalogProducts: document.querySelectorAll('.ca-product').length,
+    catalogLiveProducts: document.querySelectorAll('.ca-product[data-live="true"]').length,
+    catalogWaitingProducts: document.querySelectorAll('.ca-product[data-live="false"]').length,
+    catalogFilters: document.querySelectorAll('.ca-filter').length,
     primaryCompanionHref: document.querySelector('.ca-deal a[href^="/companion?q="]')?.getAttribute('href'),
     primaryProduct: document.querySelector('.ca-deal h3')?.textContent,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -156,8 +160,24 @@ try {
   assert(cheapApples.searchAction === '/companion', 'Cheap Apples search does not lead to Companion');
   assert(cheapApples.companionLinks === cheapApples.deals, 'A Cheap Apples deal is missing its Companion path');
   assert(cheapApples.evidenceLinks === cheapApples.deals, 'A Cheap Apples deal is missing its evidence path');
+  assert(cheapApples.catalogProducts === 37, 'Cheap Apples does not render all 37 active catalog products');
+  assert(cheapApples.catalogLiveProducts + cheapApples.catalogWaitingProducts === cheapApples.catalogProducts, 'A catalog product has no honest coverage state');
+  assert(cheapApples.catalogFilters >= 9, 'Cheap Apples is missing category filters');
   assert(cheapApples.primaryCompanionHref && cheapApples.primaryProduct, 'Cheap Apples has no executable featured deal');
   assert(cheapApples.overflow <= 0, `Cheap Apples overflows mobile viewport by ${cheapApples.overflow}px`);
+  const catalogInteraction = await evaluate(client, `(() => {
+    const input = document.querySelector('#ca-catalog-search');
+    input.value = 'airpods';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const searchVisible = [...document.querySelectorAll('.ca-product')].filter(card => !card.hidden).length;
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('.ca-filter[data-category="phone"]').click();
+    const phoneVisible = [...document.querySelectorAll('.ca-product')].filter(card => !card.hidden).length;
+    return { searchVisible, phoneVisible, label: document.querySelector('#ca-product-count')?.textContent };
+  })()`);
+  assert(catalogInteraction.searchVisible === 3, 'Catalog search did not isolate all three AirPods products');
+  assert(catalogInteraction.phoneVisible === 5, 'Phone filter did not isolate all five active iPhone products');
 
   await navigate(client, '/');
   const companionHref = await evaluate(client, "document.querySelector('a[href^=\"/companion?q=\"]')?.getAttribute('href')");

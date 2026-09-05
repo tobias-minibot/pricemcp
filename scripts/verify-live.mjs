@@ -65,6 +65,8 @@ const cheapApplesPage = await readText('/cheap-apples');
 assert(cheapApplesPage.includes('<title>Cheap Apples — verified Apple prices</title>'), 'Cheap Apples is missing its B2C identity');
 assert(cheapApplesPage.includes('action="/companion"'), 'Cheap Apples is not connected to Companion');
 assert(cheapApplesPage.includes('href="/products/'), 'Cheap Apples has no evidence path');
+assert((cheapApplesPage.match(/class="ca-product"/g) || []).length === 37, 'Cheap Apples does not expose all 37 active catalog products');
+assert(cheapApplesPage.includes('AWAITING PRICE'), 'Cheap Apples hides products awaiting fresh evidence');
 assert(cheapApplesPage.includes('Not affiliated with or endorsed by Apple Inc.'), 'Cheap Apples is missing its affiliation boundary');
 
 const productPath = `/products/${search.subject.product_id}`;
