@@ -1,0 +1,54 @@
+name: Refresh public price snapshot
+
+on:
+  schedule:
+    - cron: '17 */12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-price-snapshot-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Regenerate, verify, and publish
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout --detach origin/main
+            npm ci
+            cp data/vercel-snapshot.db data/pricemcp.db
+            npm run collect
+            npm run snapshot:vercel
+            node scripts/verify-snapshot-refresh.mjs
+            npm run check
+            npm test
+            git add -f data/vercel-snapshot.db
+            if git diff --cached --quiet; then
+              echo 'Snapshot unchanged.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            git commit -m 'data: refresh public price snapshot'
+            if git push origin HEAD:main; then
+              echo 'Published a verified no-cost snapshot refresh.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Main moved during attempt $attempt; regenerating from its latest tip."
+          done
+          echo 'Main kept moving; no stale artifact was published.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
