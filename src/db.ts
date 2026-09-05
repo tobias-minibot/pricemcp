@@ -159,10 +159,12 @@ export function getProduct(db: Db, id: string): any | null {
   return row ? {...row,active:!!row.active,synthetic:!!row.synthetic,attributes:JSON.parse(row.attributes_json)} : null;
 }
 
+const hydrateOffer=(row:any)=>({...row,available:!!row.available,verified:!!row.verified,authorized:!!row.authorized,marketplace_seller:!!row.marketplace_seller,membership_required:!!row.membership_required,synthetic:!!row.synthetic,...freshness(row.observed_at),trusted:!!row.verified&&!!row.authorized&&row.trust_score>=0.75&&!row.marketplace_seller&&row.condition==='new'});
+
 export function getOffers(db: Db, productId: string, maxAgeHours?: number): any[] {
   const rows = db.prepare(`SELECT o.*,po.source_method,po.match_confidence,po.dataset,po.synthetic,m.name merchant_name,m.verified,m.authorized,m.trust_score,m.source_type,m.shipping_reliability,m.marketplace_seller,m.notes merchant_notes
     FROM offers o JOIN merchants m ON m.id=o.merchant_id JOIN price_observations po ON po.id=o.observation_id WHERE o.product_id=? ORDER BY o.total_minor ASC,m.trust_score DESC`).all(productId) as any[];
-  return rows.map(row=>({...row,available:!!row.available,verified:!!row.verified,authorized:!!row.authorized,marketplace_seller:!!row.marketplace_seller,membership_required:!!row.membership_required,synthetic:!!row.synthetic,...freshness(row.observed_at),trusted:!!row.verified&&!!row.authorized&&row.trust_score>=0.75&&!row.marketplace_seller&&row.condition==='new'}))
+  return rows.map(hydrateOffer)
     .filter(row=>maxAgeHours===undefined || row.age_seconds <= maxAgeHours*3600);
 }
 
@@ -177,8 +179,8 @@ export function recordDecision(db:Db,productId:string,merchantId:string,rational
 
 export function listDecisions(db:Db,limit=20):any[]{return db.prepare('SELECT * FROM decision_records ORDER BY created_at DESC LIMIT ?').all(limit) as any[]}
 
-export function bestPrice(db: Db, productId: string, maxAgeHours?: number): any {
-  const offers = getOffers(db,productId,maxAgeHours).filter(o=>o.available&&o.freshness_status!=='stale');
+const summarizePrice=(productId:string,allOffers:any[],maxAgeHours?:number):any=>{
+  const offers = allOffers.filter(o=>o.available&&o.freshness_status!=='stale');
   const cheapest = offers[0] || null;
   const bestTrusted = offers.filter(o=>o.trusted&&!o.membership_required).sort((a,b)=>a.total_minor-b.total_minor || b.trust_score-a.trust_score)[0] || null;
   const bestMembership = offers.filter(o=>o.trusted&&o.membership_required).sort((a,b)=>a.total_minor-b.total_minor || b.trust_score-a.trust_score)[0] || null;
@@ -186,6 +188,20 @@ export function bestPrice(db: Db, productId: string, maxAgeHours?: number): any 
   return { product_id:productId, cheapest_offer:cheapest, best_trusted_offer:bestTrusted, best_membership_offer:bestMembership, official_price:official,
     savings_vs_official_minor: official&&bestTrusted ? official.total_minor-bestTrusted.total_minor : null,
     evidence_count:offers.length, max_age_hours:maxAgeHours??null };
+};
+
+export function bestPrice(db: Db, productId: string, maxAgeHours?: number): any {
+  return summarizePrice(productId,getOffers(db,productId,maxAgeHours),maxAgeHours);
+}
+
+export function bestPrices(db:Db,productIds:string[],maxAgeHours?:number):Map<string,any>{
+  if(!productIds.length)return new Map();
+  const placeholders=productIds.map(()=>'?').join(',');
+  const rows=db.prepare(`SELECT o.*,po.source_method,po.match_confidence,po.dataset,po.synthetic,m.name merchant_name,m.verified,m.authorized,m.trust_score,m.source_type,m.shipping_reliability,m.marketplace_seller,m.notes merchant_notes
+    FROM offers o JOIN merchants m ON m.id=o.merchant_id JOIN price_observations po ON po.id=o.observation_id WHERE o.product_id IN (${placeholders}) ORDER BY o.product_id,o.total_minor ASC,m.trust_score DESC`).all(...productIds) as any[];
+  const grouped=new Map<string,any[]>(productIds.map(id=>[id,[]]));
+  for(const row of rows){const offer=hydrateOffer(row);if(maxAgeHours===undefined||offer.age_seconds<=maxAgeHours*3600)grouped.get(row.product_id)?.push(offer)}
+  return new Map(productIds.map(id=>[id,summarizePrice(id,grouped.get(id)||[],maxAgeHours)]));
 }
 
 export function history(db: Db, productId: string, days = 30): any {
