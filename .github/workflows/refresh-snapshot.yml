@@ -31,31 +31,47 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          attest() {
+            local sha="$1"
+            if gh api "repos/${GITHUB_REPOSITORY}/commits/${sha}/check-runs" --jq '.check_runs[] | select(.name == "refresh-verify" and .status == "completed" and .conclusion == "success") | .id' | grep -q .; then
+              return 0
+            fi
+            for check_attempt in 1 2 3 4 5; do
+              if gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" \
+                -f name='refresh-verify' \
+                -f head_sha="$sha" \
+                -f status='completed' \
+                -f conclusion='success' \
+                -f 'output[title]=Verified public price snapshot' \
+                -f 'output[summary]=All required collectors, snapshot integrity gates, TypeScript, dependency audit, and the full automated test suite passed before publication.'; then
+                return 0
+              fi
+              sleep 2
+            done
+            return 1
+          }
           for attempt in 1 2 3; do
             git fetch origin main
             git checkout --detach origin/main
             npm ci
             cp data/vercel-snapshot.db data/pricemcp.db
+            export PRICEMCP_REFRESH_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
             npm run collect
             npm run snapshot:vercel
             node scripts/verify-snapshot-refresh.mjs
             npm run check
             npm test
+            npm audit --audit-level=high
             git add -f data/vercel-snapshot.db
             if git diff --cached --quiet; then
+              attest "$(git rev-parse HEAD)"
               echo 'Snapshot unchanged.' >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             git commit -m 'data: refresh public price snapshot'
             if git push origin HEAD:main; then
               published_sha=$(git rev-parse HEAD)
-              gh api -X POST "repos/${GITHUB_REPOSITORY}/check-runs" \
-                -f name='refresh-verify' \
-                -f head_sha="$published_sha" \
-                -f status='completed' \
-                -f conclusion='success' \
-                -f 'output[title]=Verified public price snapshot' \
-                -f 'output[summary]=All required collectors, snapshot integrity gates, TypeScript, and 87 automated tests passed before publication.'
+              attest "$published_sha"
               echo 'Published a verified no-cost snapshot refresh.' >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
