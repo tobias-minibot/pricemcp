@@ -2,17 +2,22 @@ import { DatabaseSync } from 'node:sqlite';
 
 const scalar = (db, sql, ...params) => Number(db.prepare(sql).get(...params).value);
 const requiredSources = ['apple-us', 'best-buy-us', 'amazon-us'];
+const refreshStartedAt = process.env.PRICEMCP_REFRESH_STARTED_AT;
+if (!refreshStartedAt || !Number.isFinite(Date.parse(refreshStartedAt))) throw new Error('PRICEMCP_REFRESH_STARTED_AT must be a valid ISO-8601 timestamp');
 
 const source = new DatabaseSync('data/pricemcp.db', { readOnly: true });
 const collectors = Object.fromEntries(requiredSources.map(name => [name, scalar(source, `
+  WITH current_run AS (
+    SELECT id, status FROM collection_runs
+    WHERE source = ? AND julianday(started_at) >= julianday(?)
+    ORDER BY id DESC LIMIT 1
+  )
   SELECT count(*) value
   FROM price_observations po
-  JOIN collection_runs cr ON cr.id = po.run_id
-  WHERE cr.source = ?
-    AND cr.status IN ('success', 'partial')
+  JOIN current_run cr ON cr.id = po.run_id
+  WHERE cr.status IN ('success', 'partial')
     AND po.collection_status = 'success'
-    AND julianday(po.observed_at) >= julianday('now', '-1 hour')
-`, name)]));
+`, name, refreshStartedAt)]));
 source.close();
 
 const snapshot = new DatabaseSync('data/vercel-snapshot.db', { readOnly: true });

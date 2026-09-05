@@ -65,7 +65,7 @@ const mainChecks = await (
   })
 ).json();
 const successfulCi = mainChecks.check_runs?.find(
-  (check) => check.name === 'verify' && check.status === 'completed' && check.conclusion === 'success',
+  (check) => ['verify', 'refresh-verify'].includes(check.name) && check.status === 'completed' && check.conclusion === 'success',
 );
 assert(successfulCi, `current main commit ${mainCommit.sha.slice(0, 7)} does not have a successful CI verify check`);
 
