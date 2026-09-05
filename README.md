@@ -104,7 +104,7 @@ price evidence.
 - **5 retailers** normalized in the live AirPods Pro 3 query.
 - **7 read-only MCP tools** exposed with machine-readable schemas.
 - **38 canonical products and 29 offers** in the deployed timestamped snapshot.
-- **87 automated tests**, green CI, Qodo-reviewed pull requests, and a live
+- **88 automated tests**, green CI, Qodo-reviewed pull requests, and a live
   read-only production boundary.
 - A twice-daily no-cost snapshot refresh for the direct Apple, Best Buy, and
   curated Amazon collectors, with integrity, freshness, and secret-leak gates
