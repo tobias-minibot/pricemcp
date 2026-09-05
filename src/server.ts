@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, history, health, recordCollection, listFeaturedProducts } from './db.js';
 import { createMcpServer } from './mcp.js';
-import { companionPage, decisionsPage, developerPage, flightCompanionPage, homePage, productPage, statusPage } from './web.js';
+import { cheapApplesPage, companionPage, decisionsPage, developerPage, flightCompanionPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
@@ -73,6 +73,12 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
   app.get('/companion',(req,reply)=>reply.type('text/html').send(companionPage(String((req.query as any).q||''))));
+  app.get('/cheap-apples',(_req,reply)=>{
+    const preferred=['apple-airpods-pro-3','apple-macbook-pro-m5-14-16-1024','apple-macbook-pro-m5-pro-16-24-1024','apple-macbook-air-m5-13-16-512'];
+    const deals=preferred.map(productId=>{const product=getProduct(db,productId),price=bestPrice(db,productId,24),offer=price.best_trusted_offer;return product&&offer?{product_id:productId,name:product.name,offer,savings_minor:price.savings_vs_official_minor,official_total_minor:price.official_price?.total_minor}:null}).filter(Boolean).slice(0,3);
+    const snapshot=health(db);
+    reply.type('text/html').send(cheapApplesPage(deals,{fresh_available_offers:snapshot.counts.fresh_available_offers,last_refresh:snapshot.last_refresh}));
+  });
   app.get('/companion/flights',(_req,reply)=>reply.type('text/html').send(flightCompanionPage({flightProviderConfigured:Boolean(process.env.DUFFEL_ACCESS_TOKEN||process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)})));
   app.get('/decisions',(_req,reply)=>reply.type('text/html').send(decisionsPage()));
   app.get('/developer',(_req,reply)=>reply.type('text/html').send(developerPage()));

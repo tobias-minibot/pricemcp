@@ -139,6 +139,23 @@ try {
     mobile: true,
   });
 
+  await navigate(client, '/cheap-apples');
+  const cheapApples = await evaluate(client, `(() => ({
+    title: document.title,
+    freshLabel: document.querySelector('.ca-kicker')?.textContent.trim(),
+    deals: document.querySelectorAll('.ca-deal').length,
+    searchAction: document.querySelector('.ca-search')?.getAttribute('action'),
+    companionLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/companion?q=')).length,
+    evidenceLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/products/')).length,
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  }))()`);
+  assert(cheapApples.title.startsWith('Cheap Apples'), 'Cheap Apples has the wrong browser title');
+  assert(cheapApples.deals > 0, 'Cheap Apples rendered no fresh deal cards');
+  assert(cheapApples.searchAction === '/companion', 'Cheap Apples search does not lead to Companion');
+  assert(cheapApples.companionLinks === cheapApples.deals, 'A Cheap Apples deal is missing its Companion path');
+  assert(cheapApples.evidenceLinks === cheapApples.deals, 'A Cheap Apples deal is missing its evidence path');
+  assert(cheapApples.overflow <= 0, `Cheap Apples overflows mobile viewport by ${cheapApples.overflow}px`);
+
   await navigate(client, '/');
   const companionHref = await evaluate(client, "document.querySelector('a[href^=\"/companion?q=\"]')?.getAttribute('href')");
   assert(companionHref, 'Homepage has no consumer Companion entry point');
@@ -192,6 +209,7 @@ try {
   console.log(JSON.stringify({
     status: 'ok',
     viewport: '390x844',
+    cheap_apples: cheapApples,
     companion,
     watchlist,
   }, null, 2));
