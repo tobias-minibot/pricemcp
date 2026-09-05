@@ -24,40 +24,31 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - name: Refresh no-cost direct sources
+      - name: Regenerate, verify, and publish
         run: |
-          cp data/vercel-snapshot.db data/pricemcp.db
-          npm run collect
-          npm run snapshot:vercel
-      - name: Verify refreshed snapshot
-        run: |
-          node --input-type=module <<'NODE'
-          import { DatabaseSync } from 'node:sqlite';
-          const db = new DatabaseSync('data/vercel-snapshot.db', { readOnly: true });
-          const scalar = sql => Number(db.prepare(sql).get().value);
-          const offers = scalar('SELECT count(*) value FROM offers');
-          const observations = scalar('SELECT count(*) value FROM price_observations');
-          const fresh = scalar("SELECT count(*) value FROM offers WHERE available=1 AND julianday(observed_at)>=julianday('now','-24 hours')");
-          const unsafe = scalar("SELECT count(*) value FROM price_observations WHERE run_id IS NOT NULL OR raw_payload_json LIKE '%token%' OR raw_payload_json LIKE '%secret%'");
-          const integrity = db.prepare('PRAGMA integrity_check').get().integrity_check;
-          db.close();
-          if (integrity !== 'ok' || offers < 1 || offers !== observations || fresh < 1 || unsafe > 0) {
-            throw new Error(JSON.stringify({ integrity, offers, observations, fresh, unsafe }));
-          }
-          console.log(JSON.stringify({ integrity, offers, observations, fresh, unsafe }));
-          NODE
-          npm run check
-          npm test
-      - name: Publish changed snapshot
-        run: |
-          git add -f data/vercel-snapshot.db
-          if git diff --cached --quiet; then
-            echo 'Snapshot unchanged.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'data: refresh public price snapshot'
-          git push origin HEAD:main
-          echo 'Published a verified no-cost snapshot refresh.' >> "$GITHUB_STEP_SUMMARY"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout --detach origin/main
+            npm ci
+            cp data/vercel-snapshot.db data/pricemcp.db
+            npm run collect
+            npm run snapshot:vercel
+            node scripts/verify-snapshot-refresh.mjs
+            npm run check
+            npm test
+            git add -f data/vercel-snapshot.db
+            if git diff --cached --quiet; then
+              echo 'Snapshot unchanged.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            git commit -m 'data: refresh public price snapshot'
+            if git push origin HEAD:main; then
+              echo 'Published a verified no-cost snapshot refresh.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Main moved during attempt $attempt; regenerating from its latest tip."
+          done
+          echo 'Main kept moving; no stale artifact was published.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
