@@ -4,7 +4,7 @@ import { Cron } from 'croner';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, history, health, recordCollection, listFeaturedProducts, listCatalog } from './db.js';
+import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, bestPrices, history, health, recordCollection, listFeaturedProducts, listCatalog } from './db.js';
 import { createMcpServer } from './mcp.js';
 import { cheapApplesPage, companionPage, decisionsPage, developerPage, flightCompanionPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
@@ -77,7 +77,8 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
     if(isDemo)return reply.code(404).type('text/html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Cheap Apples unavailable</title></head><body><main><h1>Cheap Apples is live-only.</h1><p>DEMO DATA — SYNTHETIC PRICES — NOT LIVE OR PURCHASABLE. The consumer storefront is unavailable for synthetic datasets.</p><a href="/">Return to the disclosed demo</a></main></body></html>');
     const preferred=['apple-airpods-pro-3','apple-macbook-pro-m5-14-16-1024','apple-macbook-pro-m5-pro-16-24-1024','apple-macbook-air-m5-13-16-512'];
     const deals=preferred.map(productId=>{const product=getProduct(db,productId),price=bestPrice(db,productId,24),offer=price.best_trusted_offer;return product&&offer?{product_id:productId,name:product.name,offer,savings_minor:price.savings_vs_official_minor,official_total_minor:price.official_price?.total_minor}:null}).filter(Boolean).slice(0,3);
-    const products=listCatalog(db).filter(product=>product.active).map(product=>{const price=bestPrice(db,product.id,24);return{product_id:product.id,name:product.name,category:product.category,offer:price.best_trusted_offer,savings_minor:price.savings_vs_official_minor,official_total_minor:price.official_price?.total_minor}}).sort((a,b)=>Number(Boolean(b.offer))-Number(Boolean(a.offer))||a.category.localeCompare(b.category)||a.name.localeCompare(b.name));
+    const activeProducts=listCatalog(db).filter(product=>product.active),prices=bestPrices(db,activeProducts.map(product=>product.id),24);
+    const products=activeProducts.map(product=>{const price=prices.get(product.id);return{product_id:product.id,name:product.name,category:product.category,offer:price.best_trusted_offer,savings_minor:price.savings_vs_official_minor,official_total_minor:price.official_price?.total_minor}}).sort((a,b)=>Number(Boolean(b.offer))-Number(Boolean(a.offer))||a.category.localeCompare(b.category)||a.name.localeCompare(b.name));
     const snapshot=health(db);
     reply.type('text/html').send(cheapApplesPage(deals,products,{fresh_available_offers:snapshot.counts.fresh_available_offers,last_refresh:snapshot.last_refresh}));
   });
