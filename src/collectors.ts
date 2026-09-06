@@ -22,17 +22,20 @@ export async function collectApple(): Promise<CollectorResult> {
   const source='apple-us', method='official_store_structured_data';
   const observed_at=new Date().toISOString(), observations:RawObservation[]=[], errors:string[]=[];
   for(const page of appleTargets){
+    let data:any;
     try{
-      const data=parseAppleBootstrap(await fetchText(page.url));
-      for(const target of page.targets){
+      data=parseAppleBootstrap(await fetchText(page.url));
+    }catch(e){errors.push(`${page.url}: ${e instanceof Error?e.message:String(e)}`);continue}
+    for(const target of page.targets){
+      try{
         const candidates=(data.products||[]).filter(target.accept).filter((entry:any)=>Number.isFinite(Number(data.mainDisplayValues?.prices?.[applePriceKey(entry)]?.currentPrice?.raw_amount)));
         candidates.sort((a:any,b:any)=>Number(data.mainDisplayValues.prices[applePriceKey(a)].currentPrice.raw_amount)-Number(data.mainDisplayValues.prices[applePriceKey(b)].currentPrice.raw_amount));
         const entry=candidates[0];if(!entry)throw new Error(`${target.productId}: expected configuration not found`);
         const product=catalog.find(p=>p.id===target.productId);if(!product)throw new Error(`${target.productId}: catalog target missing`);
         const priceKey=applePriceKey(entry), price=data.mainDisplayValues.prices[priceKey].currentPrice.raw_amount, comingSoon=Boolean(entry.isComingSoon??entry.comingSoon);
         observations.push({source,source_method:method,merchant_id:'apple',source_product_id:applePartNumber(entry)||priceKey,url:page.url,observed_at,title:`Apple ${product.name}`,raw_price:`$${price}`,currency:'USD',price_minor:parsePrice(price),shipping_minor:null,available:!comingSoon,condition:'new',matched_product_id:product.id,match_confidence:1,collection_status:comingSoon?'unavailable':'success',raw_payload:{price_key:priceKey,part_number:applePartNumber(entry),dimensions:appleDimensions(entry)}});
-      }
-    }catch(e){errors.push(`${page.url}: ${e instanceof Error?e.message:String(e)}`)}
+      }catch(e){errors.push(`${page.url}: ${target.productId}: ${e instanceof Error?e.message:String(e)}`)}
+    }
   }
   for(const target of appleCtoTargets){
     try{
