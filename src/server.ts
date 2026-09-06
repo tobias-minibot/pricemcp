@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { openDatabase, seed, searchProducts, getProduct, getOffers, bestPrice, bestPrices, history, health, recordCollection, listFeaturedProducts, listCatalog } from './db.js';
 import { createMcpServer } from './mcp.js';
-import { cheapApplesPage, companionPage, decisionsPage, developerPage, flightCompanionPage, homePage, productPage, statusPage } from './web.js';
+import { cheapAppleProductPage, cheapAppleSavedPage, cheapApplesPage, companionPage, decisionsPage, developerPage, flightCompanionPage, homePage, productPage, statusPage } from './web.js';
 import { runCollectors, runPriorityCollectors } from './collectors.js';
 import { evaluateCollectionHealth, notifyCollectionIssues } from './monitor.js';
 import { isIsoDate, parseNaturalPriceQuery, searchPrice } from './price-search.js';
@@ -81,6 +81,13 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
     const products=activeProducts.map(product=>{const price=prices.get(product.id);return{product_id:product.id,name:product.name,category:product.category,offer:price.best_trusted_offer,savings_minor:price.savings_vs_official_minor,official_total_minor:price.official_price?.total_minor}}).sort((a,b)=>Number(Boolean(b.offer))-Number(Boolean(a.offer))||a.category.localeCompare(b.category)||a.name.localeCompare(b.name));
     const snapshot=health(db);
     reply.type('text/html').send(cheapApplesPage(deals,products,{fresh_available_offers:snapshot.counts.fresh_available_offers,last_refresh:snapshot.last_refresh}));
+  });
+  app.get('/cheap-apples/saved',(_req,reply)=>reply.type('text/html').send(cheapAppleSavedPage()));
+  app.get('/cheap-apples/:id',(req,reply)=>{
+    if(isDemo)return reply.code(404).type('text/html').send('<!doctype html><html lang="en"><body><main><h1>Cheap Apples is live-only.</h1></main></body></html>');
+    const id=(req.params as any).id,p=getProduct(db,id);
+    if(!p||!p.active)return reply.code(404).type('text/html').send(cheapApplesPage([],[],{fresh_available_offers:0,last_refresh:null}));
+    reply.type('text/html').send(cheapAppleProductPage(p,getOffers(db,id),bestPrice(db,id),history(db,id)));
   });
   app.get('/companion/flights',(_req,reply)=>reply.type('text/html').send(flightCompanionPage({flightProviderConfigured:Boolean(process.env.DUFFEL_ACCESS_TOKEN||process.env.AMADEUS_API_KEY&&process.env.AMADEUS_API_SECRET)})));
   app.get('/decisions',(_req,reply)=>reply.type('text/html').send(decisionsPage()));
