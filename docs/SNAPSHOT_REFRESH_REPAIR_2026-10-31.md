@@ -36,3 +36,9 @@ Apple is partial: missing older base M5 MacBook Pro, base M4 iMac, and iPhone 17
 
 ## Time and interventions
 Child began 04:38:14Z; implementation, fresh export and gate verified by 04:40:27Z; report prepared ~04:41Z. Approximately 3 minutes 30 seconds active elapsed to report (not upstream queue time). Zero human interventions during this child run. Tool friction: unavailable rg, one HTTP/2 fetch failure, shell regex escaping during diagnostics, corrected SQL column name, and browser policy block. No approval requested to bypass these.
+
+## Follow-up 2026-11-16
+- Apple colour: equal-price variants were picked by page order (Midnight MDHE4LL/A on 10-31, Sky Blue MDHH4LL/A on 11-03, Silver MDH74LL/A in one 11-16 run). Collector now ranks Midnight, Space Black, Space Gray, Silver, then part number. Regression test added (112 tests).
+- Best Buy: SKU 6397846 (Midnight 13in 16/512) no longer appears in any Best Buy search result (checked "apple macbook air" and a SKU-specific query); the page itself is unreachable from this host (HTTP/2 protocol error), so stock/price is unverified. Added the specific query. The $1,149 on 10-31 was not reproduced on 11-03 ($1,299). Reason for the change is unconfirmed (likely a promotion).
+- Apple drift is catalog drift, not parser breakage: macbook-pro page now lists only M5 Pro/Max and M6 (no base M5 14in), iMac only 10-core/12-core GPU (no 8-8 M4), and /shop/buy-iphone/iphone-17-pro redirects to /shop/buy-iphone. Those catalog entries correctly stay without a current price; replacing them needs catalog decisions (e.g. M6 14in MacBook Pro), not invented substitutes.
+- Amazon B0GR1493ZV is intermittent: selector_drift in some runs, $1,229 in others.

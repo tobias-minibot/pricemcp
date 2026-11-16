@@ -18,6 +18,7 @@ function result(source: string, method: string, observations: RawObservation[], 
     matched_products: new Set(observations.filter(o=>o.matched_product_id).map(o=>o.matched_product_id)).size, errors };
 }
 
+const appleColourRank=(entry:any):number=>{const c=String(appleDimensions(entry)?.['chassis-dimensionColor']||'').toLowerCase();const i=['midnight','spaceblack','spacegray','silver'].indexOf(c);return i<0?99:i};
 export async function collectApple(): Promise<CollectorResult> {
   const source='apple-us', method='official_store_structured_data';
   const observed_at=new Date().toISOString(), observations:RawObservation[]=[], errors:string[]=[];
@@ -29,7 +30,7 @@ export async function collectApple(): Promise<CollectorResult> {
     for(const target of page.targets){
       try{
         const candidates=(data.products||[]).filter(target.accept).filter((entry:any)=>Number.isFinite(Number(data.mainDisplayValues?.prices?.[applePriceKey(entry)]?.currentPrice?.raw_amount)));
-        candidates.sort((a:any,b:any)=>Number(data.mainDisplayValues.prices[applePriceKey(a)].currentPrice.raw_amount)-Number(data.mainDisplayValues.prices[applePriceKey(b)].currentPrice.raw_amount));
+        candidates.sort((a:any,b:any)=>Number(data.mainDisplayValues.prices[applePriceKey(a)].currentPrice.raw_amount)-Number(data.mainDisplayValues.prices[applePriceKey(b)].currentPrice.raw_amount)||appleColourRank(a)-appleColourRank(b)||String(applePartNumber(a)||applePriceKey(a)).localeCompare(String(applePartNumber(b)||applePriceKey(b))));
         const entry=candidates[0];if(!entry)throw new Error(`${target.productId}: expected configuration not found`);
         const product=catalog.find(p=>p.id===target.productId);if(!product)throw new Error(`${target.productId}: catalog target missing`);
         const priceKey=applePriceKey(entry), price=data.mainDisplayValues.prices[priceKey].currentPrice.raw_amount, comingSoon=Boolean(entry.isComingSoon??entry.comingSoon);
@@ -153,7 +154,7 @@ function parseBestBuyTransport(html:string):any[]{
 export async function collectBestBuy():Promise<CollectorResult>{
   if(process.env.BESTBUY_API_KEY)return collectBestBuyOfficial(process.env.BESTBUY_API_KEY);
   const source='best-buy-us',method='embedded_apollo_ssr',observed_at=new Date().toISOString(),observations:RawObservation[]=[],errors:string[]=[];
-  const queries=['apple macbook air','apple macbook pro','apple airpods pro']; const seen=new Set<string>();
+  const queries=['apple macbook air','apple macbook air 13-inch m5 16gb 512gb','apple macbook pro','apple airpods pro']; const seen=new Set<string>();
   for(const query of queries){
     const searchUrl=`https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(query)}`;
     try{
