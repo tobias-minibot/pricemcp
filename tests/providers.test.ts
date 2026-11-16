@@ -10,7 +10,7 @@ describe('flight providers',()=>{
   it('normalizes Duffel test offers and preserves baggage and fare rules',async()=>{
     vi.stubEnv('AMADEUS_API_KEY','');vi.stubEnv('AMADEUS_API_SECRET','');vi.stubEnv('DUFFEL_ACCESS_TOKEN','duffel_test_token');
     const fetchMock=vi.fn().mockResolvedValue(new Response(JSON.stringify({data:{offers:[{
-      id:'off_1',live_mode:false,total_amount:'599.40',total_currency:'USD',expires_at:'2026-10-03T08:00:00Z',owner:{id:'arl_1',name:'Test Airways'},
+      id:'off_1',live_mode:false,total_amount:'599.40',total_currency:'USD',expires_at:'2099-10-03T08:00:00Z',owner:{id:'arl_1',name:'Test Airways'},
       base_amount:'500.00',base_currency:'USD',tax_amount:'99.40',tax_currency:'USD',total_emissions_kg:'321',
       slices:[{comparison_key:'outbound',fare_brand_name:'Basic',duration:'PT9H15M',origin:{iata_code:'IAD',name:'Dulles',city_name:'Washington'},destination:{iata_code:'BER',name:'Brandenburg',city_name:'Berlin'},segments:[{id:'seg_1',departing_at:'2026-09-18T18:00:00',arriving_at:'2026-09-19T06:00:00',duration:'PT7H',origin:{iata_code:'IAD',name:'Dulles'},origin_terminal:'1',destination:{iata_code:'LHR',name:'Heathrow'},destination_terminal:'5',marketing_carrier:{name:'Test Airways',iata_code:'TA'},operating_carrier:{name:'Test Airways'},marketing_carrier_flight_number:'101',aircraft:{name:'A350'},passengers:[{baggages:[{type:'checked',quantity:1},{type:'carry_on',quantity:1}],cabin_class_marketing_name:'Economy',fare_basis_code:'YTEST'}]},{id:'seg_2',stops:[]}]},{comparison_key:'return',fare_brand_name:'Basic',duration:'PT8H45M',segments:[{id:'seg_3'}]}],
       conditions:{change_before_departure:{allowed:true,penalty_amount:'40.00',penalty_currency:'USD'},refund_before_departure:{allowed:false,penalty_amount:null,penalty_currency:null}}
@@ -33,7 +33,7 @@ describe('flight providers',()=>{
     const common={live_mode:false,total_currency:'USD',owner:{id:'arl_1',name:'Test Airways'},slices:[{fare_brand_name:'Basic',duration:null,origin:{iata_code:'BOS'},destination:{iata_code:'LHR'},segments:[{departing_at:'2026-10-10T18:00:00',arriving_at:'2026-10-11T06:00:00',origin:{iata_code:'BOS'},destination:{iata_code:'LHR'},marketing_carrier:{iata_code:'TA'},marketing_carrier_flight_number:'101'}]}],conditions:{change_before_departure:{allowed:true,penalty_amount:null,penalty_currency:null}}};
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({data:{offers:[
       {...common,id:'expired',total_amount:'100.00',expires_at:'2026-01-01T00:00:00Z'},
-      {...common,id:'current',total_amount:'200.00',base_amount:null,tax_amount:'',total_emissions_kg:null,expires_at:'2026-10-03T08:00:00Z'}
+      {...common,id:'current',total_amount:'200.00',base_amount:null,tax_amount:'',total_emissions_kg:null,expires_at:'2099-10-03T08:00:00Z'}
     ]}}),{status:200,headers:{'content-type':'application/json'}})));
     const result=await searchPrice(db(),{type:'flight',origin:'BOS',destination:'LHR',departure_date:'2026-10-10'});
     expect(result.offers).toHaveLength(1);

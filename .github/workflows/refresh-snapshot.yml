@@ -43,7 +43,7 @@ jobs:
                 -f status='completed' \
                 -f conclusion='success' \
                 -f 'output[title]=Verified public price snapshot' \
-                -f 'output[summary]=All required collectors, snapshot integrity gates, TypeScript, dependency audit, and the full automated test suite passed before publication.'; then
+                -f 'output[summary]=Priority collectors, snapshot integrity gates, TypeScript, dependency audit, and the full automated test suite passed before publication. Optional retailer failures are isolated.'; then
                 return 0
               fi
               sleep 2

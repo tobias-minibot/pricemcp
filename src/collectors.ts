@@ -145,8 +145,8 @@ const appleCtoTargets=[
 
 function parseBestBuyTransport(html:string):any[]{
   const $=cheerio.load(html), found:any[]=[], visited=new Set<any>();
-  const walk=(x:any)=>{if(!x||typeof x!=='object'||visited.has(x))return;visited.add(x);if(x.__typename==='SearchProduct'&&x.product)found.push(x.product);for(const v of Object.values(x))walk(v)};
-  $('script').each((_i,e)=>{const text=$(e).html()||'';if(!text.includes('ApolloSSRDataTransport'))return;const match=text.match(/\.push\((\{[\s\S]*\})\);?\s*$/);if(!match)return;try{walk(JSON.parse(match[1]!.replace(/:undefined(?=[,}])/g,':null').replace(/\[undefined\]/g,'[null]')))}catch{/* other hydration blocks can contain executable JS */}});
+  const walk=(x:any)=>{if(!x||typeof x!=='object'||visited.has(x))return;visited.add(x);if(['SearchProduct','SearchDetailedProduct'].includes(x.__typename)&&x.product)found.push(x.product);for(const v of Object.values(x))walk(v)};
+  $('script').each((_i,e)=>{const text=$(e).html()||'';if(!text.includes('ApolloSSRDataTransport'))return;const match=text.match(/\.push\((\{[\s\S]*\})\)\s*;?\s*$/);if(!match)return;try{walk(JSON.parse(match[1]!.replace(/:undefined(?=[,}])/g,':null').replace(/\[undefined\]/g,'[null]')))}catch{/* other hydration blocks can contain executable JS */}});
   return found;
 }
 
@@ -158,7 +158,9 @@ export async function collectBestBuy():Promise<CollectorResult>{
     const searchUrl=`https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(query)}`;
     try{
       const html=await fetchText(searchUrl);
-      for(const p of parseBestBuyTransport(html)){
+      const products=parseBestBuyTransport(html);
+      if(!products.length)throw new Error('Best Buy product transport not found or empty (possible schema drift)');
+      for(const p of products){
         if(seen.has(p.skuId)||p.brand!=='Apple'||p.seller?.classification!=='1P')continue;seen.add(p.skuId);
         const title=p.name?.short||p.name?.title||''; if(/refurbished|renewed|open.box/i.test(title))continue;
         const price=p.price?.customerPrice; if(!Number.isFinite(price))continue;
@@ -167,6 +169,7 @@ export async function collectBestBuy():Promise<CollectorResult>{
       }
     }catch(e){errors.push(`${query}: ${e instanceof Error?e.message:String(e)}`)}
   }
+  if(!observations.length&&!errors.length)errors.push('Best Buy returned no usable first-party product evidence (possible schema drift)');
   return result(source,method,observations,errors);
 }
 

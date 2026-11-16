@@ -71,6 +71,9 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   });
   const requestedMaxAgeHours=(query:any):number|undefined=>{const value=query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;if(value!==undefined&&(!Number.isFinite(value)||value<0))throw Object.assign(new Error('max_age must be a finite nonnegative number'),{statusCode:400});return value};
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
+  const faviconSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#c8ff4d"/><text x="32" y="46" font-size="40" text-anchor="middle">🍏</text></svg>';
+  app.get('/favicon.svg',async(_req,reply)=>reply.type('image/svg+xml').header('cache-control','public, max-age=86400').send(faviconSvg));
+  app.get('/favicon.ico',async(_req,reply)=>reply.type('image/svg+xml').header('cache-control','public, max-age=86400').send(faviconSvg));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
   app.get('/companion',(req,reply)=>reply.type('text/html').send(companionPage(String((req.query as any).q||''))));
   app.get('/cheap-apples',(_req,reply)=>{

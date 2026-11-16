@@ -1,12 +1,25 @@
 import { afterEach,describe,expect,it,vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { collectAmazon,collectApple,collectorInternals } from '../src/collectors.js';
+import { collectAmazon,collectApple,collectBestBuy,collectorInternals } from '../src/collectors.js';
 import { collectBrightDataRetailers,extractBrightDataProduct,type BrightDataTarget } from '../src/brightdata.js';
 
 const fixture=(name:string)=>readFileSync(new URL(`fixtures/${name}`,import.meta.url),'utf8');
 
 afterEach(()=>vi.unstubAllGlobals());
 describe('collector failure handling',()=>{
+  it('reads detailed Best Buy wrappers without a trailing semicolon',()=>{
+    const html=fixture('bestbuy-search.html').replaceAll('SearchProduct','SearchDetailedProduct').replace(/;\s*<\/script>/g,'</script>');
+    expect(collectorInternals.parseBestBuyTransport(html)[0]).toMatchObject({skuId:'123',brand:'Apple'});
+  });
+  it('does not report success for product fragments without prices',async()=>{
+    const html=fixture('bestbuy-search.html').replace('\"customerPrice\":899','\"unavailable\":true')+' '.repeat(600);
+    vi.stubGlobal('fetch',vi.fn().mockImplementation(()=>Promise.resolve(new Response(html))));
+    const result=await collectBestBuy();expect(result.status).toBe('failed');expect(result.errors[0]).toContain('no usable');
+  });
+  it('fails closed when Best Buy returns no product transport',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockImplementation(()=>Promise.resolve(new Response('<html>'+ 'x'.repeat(600)+'</html>'))));
+    const result=await collectBestBuy();expect(result.status).toBe('failed');expect(result.observations).toHaveLength(0);expect(result.errors[0]).toContain('schema drift');
+  });
   it('records HTTP failures instead of fabricating observations',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('blocked',{status:403})));const r=await collectAmazon();expect(r.status).toBe('failed');expect(r.observations).toHaveLength(0);expect(r.errors[0]).toContain('HTTP 403')});
   it('records malformed payloads as a failed run',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('<html>'+('x'.repeat(600))+'</html>',{status:200})));const r=await collectApple();expect(r.status).toBe('failed');expect(r.errors[0]).toContain('bootstrap not found')});
   it('extracts only the primary new-condition Amazon buy box',()=>{const html=`<html><body><span id="productTitle">Apple 2026 MacBook Air 13-inch Laptop with M5 chip, 13.6-inch, 16GB Unified Memory, 512GB SSD</span><div id="corePriceDisplay_desktop_feature_div"><span id="apex-pricetopay-accessibility-label">$1,299.00</span></div><div id="sfsb_accordion_head">Ships from: Amazon.com Sold by: Amazon.com</div><input id="add-to-cart-button"></body></html>`;expect(collectorInternals.parseAmazonPdp(html)).toEqual({title:'Apple 2026 MacBook Air 13-inch Laptop with M5 chip, 13.6-inch, 16GB Unified Memory, 512GB SSD',raw_price:'$1,299.00',seller:'Amazon.com',ships_from:'Amazon.com',available:true})});
