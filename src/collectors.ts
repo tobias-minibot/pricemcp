@@ -82,7 +82,7 @@ const appleTargets=[
     {productId:'apple-macbook-air-m5-15-16-512',accept:(e:any)=>screen(e)===15}
   ]},
   {url:'https://www.apple.com/shop/buy-mac/macbook-pro',targets:[
-    {productId:'apple-macbook-pro-m5-14-16-1024',accept:(e:any)=>screen(e)===14&&dim(e,'processor-dimensionChip')==='m5'},
+    {productId:'apple-macbook-pro-m6-14-16-1024',accept:(e:any)=>screen(e)===14&&dim(e,'processor-dimensionChip')==='m6'&&dim(e,'display-dimensionFinish')==='standard'},
     {productId:'apple-macbook-pro-m5-pro-14-24-1024',accept:(e:any)=>screen(e)===14&&dim(e,'processor-dimensionChip')==='m5pro'},
     {productId:'apple-macbook-pro-m5-pro-16-24-1024',accept:(e:any)=>screen(e)===16&&dim(e,'processor-dimensionChip')==='m5pro'}
   ]},
@@ -90,19 +90,15 @@ const appleTargets=[
     {productId:'apple-mac-mini-m6-16-256',accept:(e:any)=>dim(e,'processor-dimensionChip')==='m6'},
     {productId:'apple-mac-mini-m5-pro-24-512',accept:(e:any)=>dim(e,'processor-dimensionChip')==='m5pro'}
   ]},
-  {url:'https://www.apple.com/shop/buy-mac/imac',targets:[
-    {productId:'apple-imac-m4-24-16-256',accept:(e:any)=>dim(e,'processor-cpuCoreCount-gpuCoreCount')==='8-8'},
-    {productId:'apple-imac-m4-24-16-512',accept:(e:any)=>dim(e,'processor-cpuCoreCount-gpuCoreCount')==='10-10'}
-  ]},
   {url:'https://www.apple.com/shop/buy-iphone/iphone-17',targets:[
     {productId:'apple-iphone-17-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'carrierPolicyType')==='unlocked'}
   ]},
   {url:'https://www.apple.com/shop/buy-iphone/iphone-air',targets:[
     {productId:'apple-iphone-air-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'carrierPolicyType')==='unlocked'}
   ]},
-  {url:'https://www.apple.com/shop/buy-iphone/iphone-17-pro',targets:[
-    {productId:'apple-iphone-17-pro-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'dimensionScreensize')==='6_3inch'&&dim(e,'carrierPolicyType')==='unlocked'},
-    {productId:'apple-iphone-17-pro-max-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'dimensionScreensize')==='6_9inch'&&dim(e,'carrierPolicyType')==='unlocked'}
+  {url:'https://www.apple.com/shop/buy-iphone/iphone-18-pro',targets:[
+    {productId:'apple-iphone-18-pro-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'dimensionScreensize')==='6_3inch'&&dim(e,'carrierPolicyType')==='unlocked'},
+    {productId:'apple-iphone-18-pro-max-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'dimensionScreensize')==='6_9inch'&&dim(e,'carrierPolicyType')==='unlocked'}
   ]},
   {url:'https://www.apple.com/shop/buy-iphone/iphone-17e',targets:[
     {productId:'apple-iphone-17e-256',accept:(e:any)=>dim(e,'dimensionCapacity')==='256gb'&&dim(e,'carrierPolicyType')==='unlocked'}
@@ -176,7 +172,7 @@ export async function collectBestBuy():Promise<CollectorResult>{
 
 const bestBuyExactSkus=[
   ['6397846','apple-macbook-air-m5-13-16-512'],['6571043','apple-macbook-air-m5-15-16-512'],
-  ['6565872','apple-macbook-pro-m5-14-16-1024'],['6615860','apple-macbook-pro-m5-pro-14-24-1024'],
+  ['6615860','apple-macbook-pro-m5-pro-14-24-1024'],
   ['6615870','apple-macbook-pro-m5-pro-16-24-1024'],['6615872','apple-macbook-pro-m5-pro-16-48-1024'],
   ['6455384','apple-macbook-air-m5-13-24-1024'],['6571045','apple-macbook-air-m5-15-24-1024'],
   ['6376563','apple-airpods-pro-3'],['6550081','apple-airpods-max-2']
