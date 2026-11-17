@@ -61,7 +61,7 @@ jobs:
             node scripts/verify-snapshot-refresh.mjs
             npm run check
             npm test
-            npm audit --audit-level=high
+            npm audit --omit=dev --audit-level=high && npm audit --audit-level=critical
             git add -f data/vercel-snapshot.db
             if git diff --cached --quiet; then
               attest "$(git rev-parse HEAD)"

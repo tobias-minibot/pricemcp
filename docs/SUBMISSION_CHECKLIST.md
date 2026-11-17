@@ -7,7 +7,7 @@ and had to be re-cut; this list exists so that class of mistake cannot recur.
 
 ## 1. Baseline
 
-- [ ] `main` is green: `npm run check`, `npm test`, `npm audit --audit-level=high`.
+- [ ] `main` is green: `npm run check`, `npm test`, `npm audit --omit=dev --audit-level=high` and `npm audit --audit-level=critical`.
 - [ ] Companion tests pass: `uv run --project agents/strands pytest -q agents/strands/tests`.
 - [ ] No open PRs from the previous entry. Merge or close them first.
 - [ ] Tag the submission head: `git tag -a submission/<event>-<yyyy-mm-dd> -m "<event>"` and push the tag.

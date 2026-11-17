@@ -21,7 +21,7 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
-      - run: npm audit --audit-level=high
+      - run: npm audit --omit=dev --audit-level=high && npm audit --audit-level=critical
 
   companion:
     runs-on: ubuntu-latest

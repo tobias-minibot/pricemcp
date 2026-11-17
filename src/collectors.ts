@@ -115,7 +115,7 @@ const appleTargets=[
     {productId:'apple-ipad-a16-128',accept:(e:any)=>dim(e,'dimensionCapacity')==='128gb'&&dim(e,'dimensionConnection')==='wifi'}
   ]},
   {url:'https://www.apple.com/shop/buy-ipad/ipad-mini',targets:[
-    {productId:'apple-ipad-mini-a17-pro-128',accept:(e:any)=>dim(e,'dimensionCapacity')==='128gb'&&dim(e,'dimensionConnection')==='wifi'}
+    {productId:'apple-ipad-mini-a20-pro-128',accept:(e:any)=>dim(e,'dimensionCapacity')==='128gb'&&dim(e,'dimensionConnection')==='wifi'&&dim(e,'dimensionFinish')==='glossy'}
   ]},
   {url:'https://www.apple.com/shop/buy-watch/apple-watch',targets:[
     {productId:'apple-watch-series-11-42',accept:(e:any)=>dim(e,'watch_cases-dimensionCaseSize')==='42mm'&&dim(e,'watch_cases-dimensionCaseMaterial')==='aluminum'&&dim(e,'watch_cases-dimensionConnection')==='gps'},
