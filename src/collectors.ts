@@ -193,7 +193,8 @@ export async function collectBestBuyOfficial(apiKey:string):Promise<CollectorRes
 }
 
 const amazonProducts = [
-  { asin:'B0GR1493ZV', expected_product_id:'apple-macbook-air-m5-13-16-512' }
+  { asin:'B0GR1493ZV', expected_product_id:'apple-macbook-air-m5-13-16-512' },
+  { asin:'B0FQFB8FMG', expected_product_id:'apple-airpods-pro-3' }
 ];
 
 function parseAmazonPdp(html:string):{title:string;raw_price:string;seller:string;ships_from:string;available:boolean}{
