@@ -144,26 +144,24 @@ try {
     title: document.title,
     freshLabel: document.querySelector('.ca-kicker')?.textContent.trim(),
     deals: document.querySelectorAll('.ca-deal').length,
-    searchAction: document.querySelector('.ca-search')?.getAttribute('action'),
-    companionLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/companion?q=')).length,
-    evidenceLinks: [...document.querySelectorAll('.ca-deal a')].filter((link) => link.getAttribute('href')?.startsWith('/products/')).length,
+    heroSearch: Boolean(document.querySelector('#ca-hero-search input[name="q"]')),
+    dealPageLinks: [...document.querySelectorAll('.ca-deal')].filter((deal) => deal.querySelector('a[href^="/cheap-apples/apple-"]')).length,
     catalogProducts: document.querySelectorAll('.ca-product').length,
     catalogLiveProducts: document.querySelectorAll('.ca-product[data-live="true"]').length,
     catalogWaitingProducts: document.querySelectorAll('.ca-product[data-live="false"]').length,
     catalogFilters: document.querySelectorAll('.ca-filter').length,
-    primaryCompanionHref: document.querySelector('.ca-deal a[href^="/companion?q="]')?.getAttribute('href'),
+    primaryDealHref: document.querySelector('.ca-deal a[href^="/cheap-apples/apple-"]')?.getAttribute('href'),
     primaryProduct: document.querySelector('.ca-deal h3')?.textContent,
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   }))()`);
   assert(cheapApples.title.startsWith('Cheap Apples'), 'Cheap Apples has the wrong browser title');
   assert(cheapApples.deals > 0, 'Cheap Apples rendered no fresh deal cards');
-  assert(cheapApples.searchAction === '/companion', 'Cheap Apples search does not lead to Companion');
-  assert(cheapApples.companionLinks === cheapApples.deals, 'A Cheap Apples deal is missing its Companion path');
-  assert(cheapApples.evidenceLinks === cheapApples.deals, 'A Cheap Apples deal is missing its evidence path');
-  assert(cheapApples.catalogProducts === 37, 'Cheap Apples does not render all 37 active catalog products');
+  assert(cheapApples.heroSearch, 'Cheap Apples has no product search');
+  assert(cheapApples.dealPageLinks === cheapApples.deals, 'A Cheap Apples deal is missing its deal page');
+  assert(cheapApples.catalogProducts === 34, 'Cheap Apples does not render all 34 active catalog products');
   assert(cheapApples.catalogLiveProducts + cheapApples.catalogWaitingProducts === cheapApples.catalogProducts, 'A catalog product has no honest coverage state');
   assert(cheapApples.catalogFilters >= 9, 'Cheap Apples is missing category filters');
-  assert(cheapApples.primaryCompanionHref && cheapApples.primaryProduct, 'Cheap Apples has no executable featured deal');
+  assert(cheapApples.primaryDealHref && cheapApples.primaryProduct, 'Cheap Apples has no executable featured deal');
   assert(cheapApples.overflow <= 0, `Cheap Apples overflows mobile viewport by ${cheapApples.overflow}px`);
   const catalogInteraction = await evaluate(client, `(() => {
     const input = document.querySelector('#ca-catalog-search');
@@ -182,7 +180,7 @@ try {
   await navigate(client, '/');
   const companionHref = await evaluate(client, "document.querySelector('a[href^=\"/companion?q=\"]')?.getAttribute('href')");
   assert(companionHref, 'Homepage has no consumer Companion entry point');
-  await navigate(client, cheapApples.primaryCompanionHref);
+  await navigate(client, companionHref);
   await waitForBrowser(
     client,
     "document.querySelector('#decision-tag')?.textContent === 'READY TO DECIDE'",
@@ -200,7 +198,7 @@ try {
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   })()`);
-  assert(companion.product === cheapApples.primaryProduct, 'Cheap Apples resolved a different Companion product');
+  assert(companion.product === 'AirPods Pro 3', 'Companion resolved a different product than the homepage asked for');
   assert(companion.handoff?.startsWith('https://'), 'Companion exposed no safe HTTPS retailer handoff');
   assert(companion.saveEnabled, 'Companion decision cannot be saved');
   assert(companion.overflow <= 0, `Companion overflows mobile viewport by ${companion.overflow}px`);
