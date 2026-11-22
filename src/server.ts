@@ -64,7 +64,7 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const apiToken=process.env.PRICEMCP_API_TOKEN;
   if(apiToken)app.addHook('onRequest',async(req,reply)=>{
     const publicReadOnlyDiagnostic=options.readOnly&&(req.url==='/developer'||req.url.startsWith('/v1/mcp/'));
-    if(req.url.startsWith('/internal/health')||publicReadOnlyDiagnostic)return;
+    if(req.url.startsWith('/internal/health')||publicReadOnlyDiagnostic||req.url.startsWith('/api/intent')||req.url.startsWith('/.well-known/whoelse-mvp.json'))return;
     const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     const valid=supplied.length===apiToken.length&&timingSafeEqual(Buffer.from(supplied),Buffer.from(apiToken));
     if(!valid)return reply.code(401).send({error:'unauthorized'});
@@ -72,6 +72,18 @@ export function buildApp(db=openDatabase(),options:{readOnly?:boolean}={}){
   const requestedMaxAgeHours=(query:any):number|undefined=>{const value=query.max_age!==undefined?Number(query.max_age)/3600:query.max_age_hours!==undefined?Number(query.max_age_hours):undefined;if(value!==undefined&&(!Number.isFinite(value)||value<0))throw Object.assign(new Error('max_age must be a finite nonnegative number'),{statusCode:400});return value};
   app.setErrorHandler((error,_req,reply)=>reply.code((error as any).statusCode||500).send({error:'request_failed',message:(error as Error).message}));
   const faviconSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#c8ff4d"/><text x="32" y="46" font-size="40" text-anchor="middle">🍏</text></svg>';
+  const WHOELSE_V='whoelse.protocol@0.3',WHOELSE_RE=/^[A-Za-z0-9][A-Za-z0-9 &'\/-]{0,60} who else\?$/,WHOELSE_MVP={name:'pricemcp',endpoint:'https://pricemcp.vercel.app/api/intent'};
+  app.get('/.well-known/whoelse-mvp.json',async(_req,reply)=>reply.header('access-control-allow-origin','*').type('application/json').send({name:'pricemcp',v:WHOELSE_V,endpoint:WHOELSE_MVP.endpoint,accepts:{GET:'?q=<TOKEN> who else?',POST:'{v,q,from,ctx}'},emits:[],note:'Price data layer. Answers product-price tokens (e.g. "iPhone who else?") with matching products. Read-only.'}));
+  const whoelseIntent=async(req:any,reply:any)=>{
+    reply.header('access-control-allow-origin','*').header('access-control-allow-headers','content-type');
+    const q=String((req.method==='POST'?(req.body||{}).q:(req.query||{}).q)||'').trim();
+    if(!WHOELSE_RE.test(q))return reply.code(400).send({v:WHOELSE_V,error:'q must be exactly "<Token> who else?" (no comma)',mvp:WHOELSE_MVP});
+    const base=q.slice(0,-' who else?'.length).trim();
+    const results=searchProducts(db,base,10).slice(0,10).map((p:any)=>({id:p.id,name:p.name,kind:'product',is_ai:false,url:'https://pricemcp.vercel.app/products/'+encodeURIComponent(p.id),next_action:'open_url',for:base}));
+    return {v:WHOELSE_V,q,base,results,note:results.length<5?'Fewer than 5 so far':undefined,mvp:WHOELSE_MVP};
+  };
+  app.get('/api/intent',whoelseIntent);app.post('/api/intent',whoelseIntent);
+  app.options('/api/intent',async(_req,reply)=>reply.code(204).header('access-control-allow-origin','*').header('access-control-allow-headers','content-type').send());
   app.get('/favicon.svg',async(_req,reply)=>reply.type('image/svg+xml').header('cache-control','public, max-age=86400').send(faviconSvg));
   app.get('/favicon.ico',async(_req,reply)=>reply.type('image/svg+xml').header('cache-control','public, max-age=86400').send(faviconSvg));
   app.get('/',async(req,reply)=>{const q=String((req.query as any).q||'');const subject=q?parseNaturalPriceQuery(q):null;const result=subject?await searchPrice(db,subject,{allowDemoFlights:isDemo}):null;const products=subject?.type==='product'?searchProducts(db,subject.query):isDemo&&!q?listFeaturedProducts(db):[];reply.type('text/html').send(homePage(products,q,result))});
